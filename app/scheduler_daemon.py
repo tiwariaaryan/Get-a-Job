@@ -65,7 +65,7 @@ def dispatch_due_jobs():
             candidate = os.path.join(WORKSPACE_ROOT, "generated_resumes", f"job_{job_id}", "Aaryan Gen Ai Resume.pdf")
             pdf_path = candidate if os.path.exists(candidate) else os.path.join(WORKSPACE_ROOT, "Resume", "Aaryan_Resume.pdf")
 
-        print(f"[{datetime.now().isoformat()}] Dispatching scheduled application #{job_id} to {recipient}...")
+        print(f"[{datetime.now().isoformat()}] Dispatching scheduled application #{job_id} to {recipient}...", flush=True)
 
         sent_success = False
         msg_id = ""
@@ -84,9 +84,9 @@ def dispatch_due_jobs():
                     agent.tag_as_carrier_item(message_id=msg_id, thread_id=th_id)
                 except Exception:
                     msg_id = "sent"
-                print(f"[{datetime.now().isoformat()}] Draft {draft_id} sent successfully and filed in 'AI Carrier'.")
+                print(f"[{datetime.now().isoformat()}] Draft {draft_id} sent successfully and filed in 'AI Carrier'.", flush=True)
             except Exception as e:
-                print(f"[{datetime.now().isoformat()}] Draft send failed: {e}. Falling back to direct send...")
+                print(f"[{datetime.now().isoformat()}] Draft send failed: {e}. Falling back to direct send...", flush=True)
 
         # 2. Fallback to direct send with attached PDF
         if not sent_success and recipient:
@@ -99,13 +99,15 @@ def dispatch_due_jobs():
             if send_res.get("success"):
                 sent_success = True
                 msg_id = send_res.get("message_id", "sent")
-                print(f"[{datetime.now().isoformat()}] Direct send with attachment successful.")
+                print(f"[{datetime.now().isoformat()}] Direct send with attachment successful.", flush=True)
+            else:
+                print(f"[{datetime.now().isoformat()}] Direct send failed: {send_res.get('error')}", flush=True)
 
         if sent_success:
             mark_scheduled_sent(job_id, message_id=msg_id)
-            print(f"[{datetime.now().isoformat()}] Application #{job_id} marked as SENT in database.")
+            print(f"[{datetime.now().isoformat()}] Application #{job_id} marked as SENT in database.", flush=True)
         else:
-            print(f"[{datetime.now().isoformat()}] Failed to dispatch scheduled application #{job_id}.")
+            print(f"[{datetime.now().isoformat()}] Failed to dispatch scheduled application #{job_id}.", flush=True)
 
 def run_scheduler_loop():
     """Independent background loop that dispatches scheduled application emails on time."""
@@ -113,13 +115,13 @@ def run_scheduler_loop():
     with open(PID_FILE, "w") as f:
         f.write(str(pid))
     
-    print(f"[{datetime.now().isoformat()}] JobFlow Scheduler Daemon started (PID {pid}).")
+    print(f"[{datetime.now().isoformat()}] JobFlow Scheduler Daemon started (PID {pid}).", flush=True)
 
     while True:
         try:
             dispatch_due_jobs()
         except Exception as e:
-            print(f"[{datetime.now().isoformat()}] Scheduler error: {e}")
+            print(f"[{datetime.now().isoformat()}] Scheduler error: {e}", flush=True)
         time.sleep(15)
 
 if __name__ == "__main__":

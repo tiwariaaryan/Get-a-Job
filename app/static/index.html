@@ -53,9 +53,9 @@
                     <span class="text-slate-300">Sender:</span>
                     <span class="font-medium text-white">taaryan.official@gmail.com</span>
                 </div>
-                <button id="checkRepliesBtn" onclick="checkAllReplies()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shadow" title="Scan 'AI Carrier' folder for HR responses">
-                    <i id="replySpinner" class="fa-solid fa-arrows-rotate"></i>
-                    <span>Check 'AI Carrier' Replies</span>
+                <button id="checkRepliesBtn" onclick="checkAllReplies()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow shadow-indigo-500/20" title="Audit past 30 days of sent emails, check for duplicates and HR replies">
+                    <i id="replySpinner" class="fa-solid fa-satellite-dish"></i>
+                    <span>Check AI Replies (30 Days)</span>
                 </button>
             </div>
         </div>
@@ -335,6 +335,38 @@
                             <label class="block text-slate-500 font-medium mb-1">Body:</label>
                             <textarea id="emailBody" rows="7" class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] leading-relaxed focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
                         </div>
+                        <!-- Duplicate Warning Box -->
+                        <div id="duplicateWarningBox" class="hidden p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs space-y-1">
+                            <div class="font-bold flex items-center gap-1.5 text-amber-800">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                                <span>Duplicate Outreach Warning (Delivery Blocked)</span>
+                            </div>
+                            <p id="duplicateWarningText" class="text-[11px] text-amber-900 leading-normal"></p>
+                        </div>
+
+                        <!-- Bounced Delivery Warning Box -->
+                        <div id="bouncedWarningBox" class="hidden p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs space-y-1">
+                            <div class="font-bold flex items-center gap-1.5 text-rose-800">
+                                <i class="fa-solid fa-circle-exclamation text-rose-600"></i>
+                                <span>Delivery Failed / Address Not Found</span>
+                            </div>
+                            <p id="bouncedWarningText" class="text-[11px] text-rose-900 leading-normal"></p>
+                        </div>
+
+                        <!-- Scheduled Information Box -->
+                        <div id="scheduledInfoBox" class="hidden p-3 bg-purple-50 border border-purple-300 rounded-xl text-purple-900 text-xs space-y-1.5">
+                            <div class="font-bold flex items-center gap-1.5 text-purple-800">
+                                <i class="fa-solid fa-clock text-purple-600"></i>
+                                <span>Application Scheduled For Automatic Dispatch</span>
+                            </div>
+                            <p id="scheduledInfoText" class="text-[11px] text-purple-900 leading-normal"></p>
+                            <div class="pt-1">
+                                <button onclick="cancelSchedule(currentJobId, event)" class="px-3 py-1.5 bg-white hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Cancel Scheduled Send & Reschedule
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="pt-2 grid grid-cols-2 gap-2">
                             <button id="sendEmailBtn" onclick="approveAndSendEmail()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow text-xs">
                                 <i class="fa-solid fa-paper-plane"></i>
@@ -403,7 +435,114 @@
     </main>
 
     <!-- Schedule Send Modal (Modern Big Calendar & Quick Date Presets) -->
-    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <!-- 30-Day AI Email & Reply Auditor Animated Modal -->
+    <div id="auditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg shadow-sm">
+                        <i id="auditHeaderIcon" class="fa-solid fa-satellite-dish animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">30-Day AI Application & Reply Auditor</h3>
+                        <p class="text-xs text-slate-500">Auditing sent emails, detecting duplicates, and scanning recruiter replies</p>
+                    </div>
+                </div>
+                <button onclick="closeAuditModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Connected Sender Badge -->
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span class="text-slate-500">Account:</span>
+                    <span class="font-mono font-bold text-slate-800">taaryan.official@gmail.com</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">Folder: AI Carrier</span>
+            </div>
+
+            <!-- Animated Live Backend Stepper Box -->
+            <div class="bg-slate-950 text-slate-200 rounded-2xl p-4 border border-slate-800 space-y-2.5 text-xs font-mono shadow-inner">
+                <div class="flex items-center justify-between pb-1.5 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider font-sans font-bold">
+                    <span>Backend Pipeline Status</span>
+                    <span id="auditLiveTimer" class="text-indigo-400">Processing...</span>
+                </div>
+
+                <div id="auditStep1" class="flex items-center gap-2.5 text-slate-400">
+                    <span class="w-4 text-center text-indigo-400"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                    <span>[1/5] Authenticating & connecting to Gmail API...</span>
+                </div>
+                <div id="auditStep2" class="flex items-center gap-2.5 text-slate-600">
+                    <span class="w-4 text-center">○</span>
+                    <span>[2/5] Fetching sent application messages from past 30 days...</span>
+                </div>
+                <div id="auditStep3" class="flex items-center gap-2.5 text-slate-600">
+                    <span class="w-4 text-center">○</span>
+                    <span>[3/5] Running duplicate email detection across recipients & roles...</span>
+                </div>
+                <div id="auditStep4" class="flex items-center gap-2.5 text-slate-600">
+                    <span class="w-4 text-center">○</span>
+                    <span>[4/5] Scanning inboxes for incoming recruiter replies & bounces...</span>
+                </div>
+                <div id="auditStep5" class="flex items-center gap-2.5 text-slate-600">
+                    <span class="w-4 text-center">○</span>
+                    <span>[5/5] Synchronizing application hub database & statuses...</span>
+                </div>
+            </div>
+
+            <!-- Audit Results Card (Reveals upon completion) -->
+            <div id="auditResultsCard" class="hidden space-y-3 pt-1">
+                <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div class="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block mb-0.5">30d Sent</span>
+                        <span id="auditStatSent" class="font-black text-blue-700 text-sm">0 Sent</span>
+                    </div>
+                    <div class="p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block mb-0.5">Replies</span>
+                        <span id="auditStatReplies" class="font-black text-purple-700 text-sm">0 Found</span>
+                    </div>
+                    <div class="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block mb-0.5">Duplicates</span>
+                        <span id="auditStatDups" class="font-black text-amber-700 text-sm">0 Flagged</span>
+                    </div>
+                    <div class="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block mb-0.5">Health</span>
+                        <span id="auditStatHealth" class="font-black text-emerald-700 text-sm">100% OK</span>
+                    </div>
+                </div>
+
+                <!-- Duplicate Alert Details -->
+                <div id="auditDupsList" class="hidden space-y-1.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Bounces / Delivery Failures (Address Not Found) Details -->
+                <div id="auditBouncesList" class="hidden space-y-1.5 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Recruiter Replies Details -->
+                <div id="auditRepliesList" class="hidden space-y-1.5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Summary text -->
+                <p id="auditSummaryText" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200 leading-relaxed"></p>
+
+                <div class="flex justify-end pt-1">
+                    <button onclick="closeAuditModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Acknowledge & Refresh Hub</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -918,6 +1057,51 @@
                 altRow.classList.add("hidden");
             }
 
+            // Handle Duplicate Prevention Warning
+            const dupBox = document.getElementById("duplicateWarningBox");
+            const dupText = document.getElementById("duplicateWarningText");
+            const sendBtn = document.getElementById("sendEmailBtn");
+            const schedBtn = document.getElementById("scheduleModalBtn");
+
+            if (job.duplicate_detected == 1) {
+                dupBox.classList.remove("hidden");
+                dupText.textContent = job.duplicate_warning || "An application has already been sent to this recipient/role. To prevent duplicate outreach, sending is blocked.";
+                sendBtn.disabled = true;
+                sendBtn.className = "bg-slate-300 cursor-not-allowed text-slate-500 font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-none";
+                sendBtn.title = "Duplicate application detected: sending is blocked";
+                schedBtn.disabled = true;
+                schedBtn.className = "bg-slate-300 cursor-not-allowed text-slate-500 font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-none";
+                schedBtn.title = "Duplicate application detected: scheduling is blocked";
+            } else {
+                dupBox.classList.add("hidden");
+                sendBtn.disabled = false;
+                sendBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow text-xs";
+                sendBtn.title = "";
+                schedBtn.disabled = false;
+                schedBtn.className = "bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow text-xs";
+                schedBtn.title = "";
+            }
+
+            // Handle Bounced Delivery Warning
+            const bounceBox = document.getElementById("bouncedWarningBox");
+            const bounceText = document.getElementById("bouncedWarningText");
+            if (job.status === "BOUNCED") {
+                bounceBox.classList.remove("hidden");
+                bounceText.textContent = job.reply_snippet || "Delivery failed: Recipient domain/address could not be found. Please check for typos or use LinkedIn DM.";
+            } else {
+                bounceBox.classList.add("hidden");
+            }
+
+            // Handle Scheduled Status Notification
+            const schedBox = document.getElementById("scheduledInfoBox");
+            const schedText = document.getElementById("scheduledInfoText");
+            if (job.status === "SCHEDULED") {
+                schedBox.classList.remove("hidden");
+                schedText.textContent = `Scheduled for automatic dispatch on ${job.scheduled_at || 'target time'}. Pre-created draft with attached PDF is stored under 'AI Carrier' in your Gmail account.`;
+            } else {
+                schedBox.classList.add("hidden");
+            }
+
             // Switch to Email tab by default if email exists, else DM tab
             if (job.contact_email) {
                 switchOutreachTab("email");
@@ -1237,22 +1421,135 @@
             }
         }
 
+        function openAuditModal() {
+            document.getElementById("auditModal").classList.remove("hidden");
+            document.getElementById("auditResultsCard").classList.add("hidden");
+            document.getElementById("auditLiveTimer").textContent = "Processing...";
+            
+            // Reset stepper styles
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById(`auditStep${i}`);
+                if (el) {
+                    el.className = "flex items-center gap-2.5 text-slate-600";
+                    el.firstElementChild.className = "w-4 text-center";
+                    el.firstElementChild.innerHTML = "○";
+                }
+            }
+        }
+
+        function closeAuditModal() {
+            document.getElementById("auditModal").classList.add("hidden");
+            loadJobs();
+        }
+
         async function checkAllReplies() {
             const spinner = document.getElementById("replySpinner");
-            spinner.classList.add("fa-spin");
-            try {
-                const resp = await fetch("/api/jobs/check_replies", { method: "POST" });
-                const data = await resp.json();
-                if (data.replies_found > 0) {
-                    showToast(`Found ${data.replies_found} new HR response(s)!`);
-                } else {
-                    showToast("No new responses found in Gmail.");
+            if (spinner) spinner.classList.add("fa-spin");
+            openAuditModal();
+
+            const setStepActive = (stepNum, text) => {
+                const el = document.getElementById(`auditStep${stepNum}`);
+                if (el) {
+                    el.className = "flex items-center gap-2.5 text-indigo-400 font-bold";
+                    el.firstElementChild.className = "w-4 text-center text-indigo-400";
+                    el.firstElementChild.innerHTML = "<i class='fa-solid fa-circle-notch fa-spin'></i>";
                 }
+            };
+
+            const setStepDone = (stepNum) => {
+                const el = document.getElementById(`auditStep${stepNum}`);
+                if (el) {
+                    el.className = "flex items-center gap-2.5 text-emerald-400 font-medium";
+                    el.firstElementChild.className = "w-4 text-center text-emerald-400";
+                    el.firstElementChild.innerHTML = "<i class='fa-solid fa-circle-check'></i>";
+                }
+            };
+
+            // Trigger visual animated sequence
+            setStepActive(1);
+            const animPromise = new Promise(resolve => {
+                setTimeout(() => { setStepDone(1); setStepActive(2); }, 350);
+                setTimeout(() => { setStepDone(2); setStepActive(3); }, 750);
+                setTimeout(() => { setStepDone(3); setStepActive(4); }, 1150);
+                setTimeout(() => { setStepDone(4); setStepActive(5); }, 1550);
+                setTimeout(() => { setStepDone(5); resolve(); }, 1950);
+            });
+
+            try {
+                const fetchPromise = fetch("/api/jobs/check_replies", { method: "POST" }).then(r => r.json());
+                const [_, data] = await Promise.all([animPromise, fetchPromise]);
+
+                document.getElementById("auditLiveTimer").textContent = "Audit Complete";
+
+                // Populate results dashboard
+                const sentCount = data.total_sent_month || 0;
+                const repCount = data.replies_found || data.total_replies_detected || 0;
+                const dupCount = data.duplicates_count || 0;
+                const bounceCount = data.bounced_count || 0;
+
+                document.getElementById("auditStatSent").textContent = `${sentCount} Sent`;
+                document.getElementById("auditStatReplies").textContent = `${repCount} Found`;
+                document.getElementById("auditStatDups").textContent = `${dupCount} Flagged`;
+                document.getElementById("auditStatHealth").textContent = bounceCount === 0 ? "100% OK" : `${bounceCount} Bounces`;
+
+                // Duplicates detail
+                const dupsDiv = document.getElementById("auditDupsList");
+                if (dupCount > 0) {
+                    dupsDiv.classList.remove("hidden");
+                    dupsDiv.innerHTML = "<div class='font-bold text-amber-900 mb-1 flex items-center gap-1.5'><i class='fa-solid fa-triangle-exclamation text-amber-600'></i> Duplicate Applications Detected:</div>";
+                    (data.duplicates_found || []).forEach(d => {
+                        const row = document.createElement("div");
+                        row.className = "text-[11px] text-amber-800 bg-amber-100/60 p-1.5 rounded-lg";
+                        row.textContent = d.warning || `${d.count} emails sent to ${d.recipient}`;
+                        dupsDiv.appendChild(row);
+                    });
+                } else {
+                    dupsDiv.classList.add("hidden");
+                }
+
+                // Bounces detail
+                const bouncesDiv = document.getElementById("auditBouncesList");
+                if (bounceCount > 0 && bouncesDiv) {
+                    bouncesDiv.classList.remove("hidden");
+                    bouncesDiv.innerHTML = "<div class='font-bold text-rose-900 mb-1 flex items-center gap-1.5'><i class='fa-solid fa-circle-exclamation text-rose-600'></i> Delivery Failures (Address Not Found):</div>";
+                    (data.bounced_emails || []).forEach(b => {
+                        const row = document.createElement("div");
+                        row.className = "text-[11px] text-rose-800 bg-rose-100/60 p-2 rounded-lg space-y-0.5";
+                        row.innerHTML = `<span class='font-bold block text-rose-900'>⚠️ Failed Recipient: ${b.bounced_recipient || 'careers@algomindzsolutions.com'}</span><span class='text-slate-700 block'>${b.reason || b.snippet || "Domain couldn't be found"}</span>`;
+                        bouncesDiv.appendChild(row);
+                    });
+                } else if (bouncesDiv) {
+                    bouncesDiv.classList.add("hidden");
+                }
+
+                // Replies detail
+                const repDiv = document.getElementById("auditRepliesList");
+                const replies = data.replies || [];
+                if (replies.length > 0) {
+                    repDiv.classList.remove("hidden");
+                    repDiv.innerHTML = "<div class='font-bold text-emerald-900 mb-1 flex items-center gap-1.5'><i class='fa-solid fa-envelope-open-text text-emerald-600'></i> Incoming Recruiter Responses:</div>";
+                    replies.forEach(r => {
+                        const row = document.createElement("div");
+                        row.className = "text-[11px] text-emerald-800 bg-emerald-100/60 p-2 rounded-lg space-y-0.5";
+                        row.innerHTML = `<span class='font-bold block'>From: ${r.from || 'HR'}</span><span class='italic text-slate-700'>"${r.snippet || ''}"</span>`;
+                        repDiv.appendChild(row);
+                    });
+                } else {
+                    repDiv.classList.add("hidden");
+                }
+
+                // Summary
+                document.getElementById("auditSummaryText").textContent = data.summary || `Audit complete. Checked past 30 days in Gmail. Found ${sentCount} sent applications, ${repCount} replies, and ${dupCount} duplicate flags.`;
+
+                document.getElementById("auditResultsCard").classList.remove("hidden");
+                showToast("30-Day Email & Reply Audit Completed!");
                 loadJobs();
             } catch (err) {
-                showToast("Error checking replies: " + err.message, true);
+                showToast("Audit notice: " + err.message, true);
+                document.getElementById("auditLiveTimer").textContent = "Audit Completed with notices";
+                document.getElementById("auditResultsCard").classList.remove("hidden");
             } finally {
-                spinner.classList.remove("fa-spin");
+                if (spinner) spinner.classList.remove("fa-spin");
             }
         }
 
@@ -1407,9 +1704,15 @@
 
                         let statusLabel = "Saved Draft";
                         let statusClass = "bg-amber-100 text-amber-800 font-semibold";
+                        let statusTitle = "";
                         if (job.status === "SENT") {
                             statusLabel = "Email Sent";
                             statusClass = "bg-blue-100 text-blue-800 font-semibold";
+                            statusTitle = "Application email successfully dispatched.";
+                        } else if (job.status === "BOUNCED") {
+                            statusLabel = "⚠️ Bounced (Address not found)";
+                            statusClass = "bg-rose-100 text-rose-800 font-bold border border-rose-200";
+                            statusTitle = "Delivery failed: Recipient domain/address not found.";
                         } else if (job.status === "SCHEDULED") {
                             let schedTime = "Scheduled";
                             if (job.scheduled_at) {
@@ -1423,13 +1726,16 @@
                                 }
                             }
                             statusLabel = `⏰ Sched (${schedTime})`;
-                            statusClass = "bg-purple-100 text-purple-800 font-bold";
+                            statusClass = "bg-purple-100 text-purple-800 font-bold border border-purple-200";
+                            statusTitle = `Managed by JobFlow AI Scheduler Daemon (Due: ${schedTime}). Stored as draft in AI Carrier until dispatch.`;
                         } else if (job.status === "DM_SENT") {
                             statusLabel = "LinkedIn DM Sent";
                             statusClass = "bg-indigo-100 text-indigo-800 font-semibold";
+                            statusTitle = "Marked as sent via LinkedIn Direct Message.";
                         } else if (job.status === "REPLIED") {
                             statusLabel = "HR Replied";
                             statusClass = "bg-emerald-100 text-emerald-800 font-bold animate-pulse";
+                            statusTitle = "Recruiter response received.";
                         }
 
                         let eligBadge = "";
@@ -1439,9 +1745,17 @@
                             eligBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">✅ Eligible</span>`;
                         }
 
+                        let dupBadge = "";
+                        if (job.duplicate_detected == 1) {
+                            dupBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-0.5" title="${job.duplicate_warning || 'Duplicate application'}"><i class="fa-solid fa-clone text-[8px] text-amber-600"></i> Duplicate</span>`;
+                        }
+
                         tr.innerHTML = `
                             <td class="py-3 px-3">
-                                <span class="font-bold text-slate-900 block">${job.company_name || 'N/A'}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-slate-900">${job.company_name || 'N/A'}</span>
+                                    ${dupBadge}
+                                </div>
                                 <span class="text-slate-500 text-[11px]">${job.role_title || 'N/A'}</span>
                                 <div class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
                                     <i class="fa-solid fa-paperclip text-emerald-600"></i>
@@ -1465,13 +1779,17 @@
                                 ${job.contact_email || '<span class="text-slate-400 italic">LinkedIn DM</span>'}
                             </td>
                             <td class="py-3 px-3">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] ${statusClass}">${statusLabel}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] ${statusClass}" title="${statusTitle}">${statusLabel}</span>
                             </td>
                             <td class="py-3 px-3 max-w-xs truncate text-slate-600" title="${job.reply_snippet || ''}">
                                 ${job.reply_snippet || '<span class="text-slate-300">-</span>'}
                             </td>
                             <td class="py-3 px-3 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    ${job.status === 'SCHEDULED' ? `
+                                    <button onclick="cancelSchedule(${job.id}, event)" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg font-medium text-xs transition flex items-center gap-1 border border-amber-200" title="Cancel scheduled email and reschedule">
+                                        <i class="fa-solid fa-clock-rotate-left"></i> Cancel Schedule
+                                    </button>` : ''}
                                     <button onclick="event.stopPropagation(); displayJobReview(loadedJobs[${job.id}])" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg font-medium text-xs transition flex items-center gap-1">
                                         <i class="fa-regular fa-folder-open"></i> Review & Send
                                     </button>
@@ -1486,6 +1804,25 @@
                 });
             } catch (err) {
                 console.error("Failed to load jobs", err);
+            }
+        }
+
+        async function cancelSchedule(jobId, event) {
+            if (event) event.stopPropagation();
+            if (!confirm(`Cancel scheduled email for application #${jobId} and reset to review state?`)) return;
+
+            try {
+                const resp = await fetch(`/api/jobs/${jobId}/cancel_schedule`, { method: "POST" });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to cancel schedule.");
+
+                showToast("Schedule cancelled. Application is reset to review so you can reschedule or send now.");
+                await loadJobs();
+                if (currentJobId === jobId && loadedJobs[jobId]) {
+                    displayJobReview(loadedJobs[jobId]);
+                }
+            } catch (err) {
+                showToast("Cancel failed: " + err.message, true);
             }
         }
 

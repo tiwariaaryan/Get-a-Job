@@ -54,5 +54,7 @@ Resume/
 *.docx
 *.pdf
 
-# Local launcher
+# Local launcher & Gmail cache
 start_app.command
+app/gmail_audit_cache.json
+*.cache.json

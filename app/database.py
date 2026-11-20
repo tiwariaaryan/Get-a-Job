@@ -414,6 +414,23 @@ def get_due_scheduled_jobs() -> List[dict]:
     conn.close()
     return [_deserialize_row(r) for r in rows]
 
+def cancel_scheduled_job(job_id: int) -> bool:
+    """Cancels a scheduled job and resets its status to PENDING_REVIEW with cleared scheduled_at."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    cursor.execute("""
+        UPDATE jobs SET
+            status = 'PENDING_REVIEW',
+            scheduled_at = NULL,
+            gmail_draft_id = NULL,
+            updated_at = ?
+        WHERE id = ?
+    """, (now, job_id))
+    conn.commit()
+    conn.close()
+    return True
+
 def mark_scheduled_sent(job_id: int, message_id: str = None):
     conn = get_connection()
     cursor = conn.cursor()

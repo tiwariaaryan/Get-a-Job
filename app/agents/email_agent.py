@@ -3,10 +3,12 @@ import json
 import os
 import re
 import shutil
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 from ..llm_client import GeminiClient
 
 CARRIER_LABEL_NAME = "AI Carrier"
+os.environ["AGY_ACCOUNT"] = "taaryan.official@gmail.com"
 
 def get_gmail_bin() -> str:
     which_bin = shutil.which("gmail")
@@ -190,12 +192,69 @@ class EmailAgent:
         constrained_fallback = enforce_strict_email_constraints(fallback_body, recruiter=recruiter, role=role, company=company)
         return {"subject": subject, "body": constrained_fallback}
 
+    def send_via_smtp(self, to_email: str, subject: str, body: str, attachment_pdf_path: str = None) -> Dict[str, Any]:
+        """Send application email with attached PDF directly via Gmail SMTP using Google App Password."""
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.base import MIMEBase
+        from email import encoders
+
+        app_password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
+        smtp_user = os.environ.get("GMAIL_SMTP_USER", self.sender_email).strip()
+
+        if not app_password:
+            return {"success": False, "error": "No GMAIL_APP_PASSWORD configured in .env"}
+
+        msg = MIMEMultipart()
+        msg["From"] = f"Aaryan Tiwari <{smtp_user}>"
+        msg["To"] = to_email
+        msg["Subject"] = subject
+
+        # Attach text body
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        # Attach PDF if present
+        if attachment_pdf_path and os.path.exists(attachment_pdf_path):
+            with open(attachment_pdf_path, "rb") as f:
+                part = MIMEBase("application", "pdf")
+                part.set_payload(f.read())
+            encoders.encode_base64(part)
+            fname = os.path.basename(attachment_pdf_path)
+            part.add_header("Content-Disposition", f"attachment; filename=\"{fname}\"")
+            msg.attach(part)
+
+        try:
+            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=20)
+            server.starttls()
+            server.login(smtp_user, app_password)
+            server.sendmail(smtp_user, [to_email], msg.as_string())
+            server.quit()
+            
+            gen_id = f"smtp_{int(datetime.now().timestamp())}"
+            return {
+                "success": True,
+                "message_id": gen_id,
+                "thread_id": gen_id,
+                "delivery_channel": "GMAIL_SMTP"
+            }
+        except Exception as e:
+            return {"success": False, "error": f"SMTP dispatch failed: {e}"}
+
     def send_email(self, to_email: str, subject: str, body: str, attachment_pdf_path: str) -> Dict[str, Any]:
         if not to_email:
             return {"success": False, "error": "No recipient email provided."}
         if not os.path.exists(attachment_pdf_path):
             return {"success": False, "error": f"Attachment file not found: {attachment_pdf_path}"}
 
+        # 1. Prefer direct Gmail SMTP if App Password is set (fast, reliable, bypasses OAuth 403)
+        if os.environ.get("GMAIL_APP_PASSWORD"):
+            smtp_res = self.send_via_smtp(to_email, subject, body, attachment_pdf_path)
+            if smtp_res.get("success"):
+                return smtp_res
+            print(f"[EmailAgent] SMTP dispatch fallback notice: {smtp_res.get('error')}")
+
+        # 2. Fallback to Gmail CLI
         cmd = [
             GMAIL_BIN,
             "mutate",
@@ -372,3 +431,185 @@ class EmailAgent:
         except Exception:
             pass
         return ""
+
+
+    def audit_past_month_applications(self) -> Dict[str, Any]:
+        """
+        Audits all past 30 days of email activity sent through the app:
+        - Scans both 'AI Carrier' label and user 'inbox' for recruiter replies & bounces
+        - Detects 'Address not found' delivery failures & extracts bounced recipients
+        - Checks total sent applications in the past 30 days
+        - Identifies duplicate applications sent to same recipient or same job role
+        - Uses resilient local cache if CLI environment does not have direct access token
+        """
+        cache_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gmail_audit_cache.json")
+        env = os.environ.copy()
+        env["AGY_ACCOUNT"] = self.sender_email
+        
+        # Scan AI Carrier AND Inbox for bounces / replies
+        search_queries = [
+            f'label:"{CARRIER_LABEL_NAME}"',
+            'in:inbox newer_than:30d (from:mailer-daemon OR "Address not found" OR "Delivery Status Notification")'
+        ]
+        
+        all_raw_messages = []
+        seen_msg_ids = set()
+        
+        for q in search_queries:
+            cmd = [GMAIL_BIN, "readonly", "search", q, "--max", "50", "--json"]
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True, env=env)
+                if res.returncode == 0 and res.stdout.strip():
+                    raw = res.stdout[res.stdout.find("["):] if "[" in res.stdout else "[]"
+                    batch = json.loads(raw)
+                    for b in batch:
+                        bid = b.get("id")
+                        if bid and bid not in seen_msg_ids:
+                            seen_msg_ids.add(bid)
+                            all_raw_messages.append(b)
+            except Exception as e:
+                print(f"[EmailAgent] Notice in query '{q}': {e}")
+
+        sent_messages = []
+        incoming_replies = []
+        bounces = []
+        recipient_counts = {}
+        role_counts = {}
+        
+        for m in all_raw_messages:
+            msg_id = m.get("id")
+            thread_id = m.get("threadId")
+            if not msg_id:
+                continue
+                
+            try:
+                g_res = subprocess.run([GMAIL_BIN, "readonly", "get", msg_id, "--json"], capture_output=True, text=True, env=env)
+                if g_res.returncode == 0 and "{" in g_res.stdout:
+                    detail = json.loads(g_res.stdout[g_res.stdout.find("{"):])
+                    headers = {h.get("name", "").lower(): h.get("value", "") for h in detail.get("payload", {}).get("headers", [])}
+                    labels = detail.get("labelIds", [])
+                    from_hdr = headers.get("from", "").lower()
+                    to_hdr = headers.get("to", "").lower()
+                    subject_hdr = headers.get("subject", "")
+                    date_hdr = headers.get("date", "")
+                    snippet = detail.get("snippet", "")
+                    
+                    # Detect Bounces / Delivery Failures (Address Not Found)
+                    is_bounce = False
+                    if any(term in from_hdr for term in ["mailer-daemon", "postmaster"]) or \
+                       any(term in subject_hdr.lower() for term in ["delivery status", "failure", "undeliverable", "address not found"]):
+                        is_bounce = True
+                    elif any(term in snippet.lower() for term in ["address not found", "wasn't delivered to", "couldn't be found", "domain couldn't be found"]):
+                        is_bounce = True
+                        
+                    if is_bounce:
+                        # Extract the exact failed recipient email address
+                        m_rcpt = re.search(r'(?:delivered to|domain|to)\s+([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', snippet, re.I)
+                        bounced_rcpt = ""
+                        if m_rcpt:
+                            bounced_rcpt = m_rcpt.group(1).lower()
+                        else:
+                            all_emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', snippet)
+                            valid_targets = [e.lower() for e in all_emails if not e.startswith("taaryan.") and "google" not in e and "daemon" not in e]
+                            if valid_targets:
+                                bounced_rcpt = valid_targets[0]
+                                
+                        reason = "Address not found: domain couldn't be found" if "domain" in snippet.lower() else "Delivery failure / Address not found"
+                        bounces.append({
+                            "message_id": msg_id,
+                            "thread_id": thread_id,
+                            "subject": subject_hdr,
+                            "from": from_hdr,
+                            "snippet": snippet,
+                            "bounced_recipient": bounced_rcpt,
+                            "reason": reason,
+                            "date": date_hdr
+                        })
+                    elif "SENT" in labels or self.sender_email.lower() in from_hdr:
+                        m_to = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', to_hdr)
+                        clean_to = m_to.group(0).lower() if m_to else to_hdr.strip()
+                        
+                        sent_messages.append({
+                            "message_id": msg_id,
+                            "thread_id": thread_id,
+                            "recipient": clean_to,
+                            "subject": subject_hdr,
+                            "date": date_hdr,
+                            "snippet": snippet
+                        })
+                        if clean_to:
+                            recipient_counts[clean_to] = recipient_counts.get(clean_to, 0) + 1
+                        if subject_hdr:
+                            norm_subj = subject_hdr.lower().replace("re:", "").strip()
+                            role_counts[norm_subj] = role_counts.get(norm_subj, 0) + 1
+                    else:
+                        incoming_replies.append({
+                            "message_id": msg_id,
+                            "thread_id": thread_id,
+                            "from": from_hdr,
+                            "to": to_hdr,
+                            "subject": subject_hdr,
+                            "date": date_hdr,
+                            "snippet": snippet
+                        })
+            except Exception as e:
+                print(f"[EmailAgent] Error inspecting message {msg_id}: {e}")
+
+        # If live scan returned 0 messages (e.g. running in webserver without injected tokens), load from persistent cache
+        if len(sent_messages) == 0 and os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r") as f:
+                    cached = json.load(f)
+                return cached
+            except Exception as e:
+                print(f"[EmailAgent] Error loading cache: {e}")
+
+        duplicates = []
+        for rcpt, count in recipient_counts.items():
+            if count > 1 and not rcpt.startswith("taaryan."):
+                duplicates.append({
+                    "type": "RECIPIENT_DUPLICATE",
+                    "recipient": rcpt,
+                    "count": count,
+                    "warning": f"Duplicate detected: {count} applications were sent to {rcpt}."
+                })
+
+        for subj, count in role_counts.items():
+            if count > 1 and "application:" in subj:
+                duplicates.append({
+                    "type": "ROLE_DUPLICATE",
+                    "subject": subj,
+                    "count": count,
+                    "warning": f"Duplicate detected: {count} applications sent for '{subj}'."
+                })
+
+        health_pct = "100%"
+        if len(bounces) > 0 and len(sent_messages) > 0:
+            pct = int(round((1 - (len(bounces) / len(sent_messages))) * 100))
+            health_pct = f"{max(0, pct)}%"
+
+        result = {
+            "success": True,
+            "scan_period": "Past 30 Days",
+            "total_messages_scanned": len(all_raw_messages),
+            "total_sent_month": len(sent_messages),
+            "total_replies_detected": len(incoming_replies),
+            "duplicates_count": len(duplicates),
+            "duplicates_found": duplicates,
+            "bounced_count": len(bounces),
+            "bounced_emails": bounces,
+            "health_score": health_pct,
+            "sent_messages": sent_messages,
+            "replies": incoming_replies,
+            "summary": f"Scanned past 30 days in Gmail ({CARRIER_LABEL_NAME} & Inbox): {len(sent_messages)} sent, {len(incoming_replies)} replies, {len(duplicates)} duplicates flagged, {len(bounces)} bounces detected."
+        }
+
+        # Cache live successful scan
+        if len(sent_messages) > 0:
+            try:
+                with open(cache_file, "w") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+
+        return result

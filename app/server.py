@@ -170,6 +170,13 @@ def mark_dm(job_id: int):
     res = orchestrator.mark_dm_sent(job_id)
     return res
 
+@app.post("/api/jobs/{job_id}/cancel_schedule")
+def cancel_schedule(job_id: int):
+    res = orchestrator.cancel_and_reset_scheduled_application(job_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
 @app.post("/api/jobs/check_replies")
 def check_replies():
     res = orchestrator.sync_all_replies()

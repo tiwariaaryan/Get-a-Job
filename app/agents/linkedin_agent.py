@@ -78,23 +78,21 @@ Extract and return a JSON object with EXACTLY these keys:
                 email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
                 found_emails = re.findall(email_pattern, content)
                 ignored = {"example@example.com", "user@domain.com"}
-                valid_raw_emails = [e for e in found_emails if e.lower() not in ignored and not e.endswith((".png", ".jpg"))]
+                valid_raw_emails = [e for e in found_emails if e.lower() not in ignored and not e.endswith((".png", ".jpg", ".jpeg", ".gif"))]
                 
-                alt_emails = data.get("alternate_emails") or []
+                alt_emails = []
                 for ve in valid_raw_emails:
-                    if ve not in alt_emails and ve != email:
+                    if ve not in alt_emails:
                         alt_emails.append(ve)
                         
-                # Suggested domain email if none
-                slug = re.sub(r'[^a-zA-Z0-9]', '', company.lower())
-                domain_email = f"careers@{slug}.com"
-                if domain_email not in alt_emails and domain_email != email:
-                    alt_emails.append(domain_email)
-
-                delivery_channel = "EMAIL" if email else "LINKEDIN_DM"
-                suggested_email = email or domain_email
-                if not email:
-                    delivery_channel = "BOTH"
+                if email and email not in alt_emails:
+                    alt_emails.insert(0, email)
+                        
+                # STRICT CONSTRAINT: Never synthesize fake domain emails (e.g. careers@domain.com).
+                # Only use emails explicitly present in the LinkedIn post itself.
+                primary_email = alt_emails[0] if alt_emails else ""
+                secondary_emails = alt_emails[1:] if len(alt_emails) > 1 else []
+                delivery_channel = "EMAIL" if primary_email else "LINKEDIN_DM"
 
                 # Parse experience numbers
                 try:
@@ -108,8 +106,8 @@ Extract and return a JSON object with EXACTLY these keys:
 
                 data["linkedin_url"] = url
                 data["recruiter_profile_url"] = url
-                data["contact_email"] = suggested_email or ""
-                data["alternate_emails"] = alt_emails
+                data["contact_email"] = primary_email
+                data["alternate_emails"] = secondary_emails
                 data["delivery_channel"] = delivery_channel
                 data["exp_min"] = exp_min
                 data["exp_max"] = exp_max
@@ -200,14 +198,10 @@ Extract and return a JSON object with EXACTLY these keys:
             post_date = "5 hours ago"
 
         recruiter_name = "Veda Nand" if "Veda Nand" in full_text else "Hiring Team"
-        delivery_channel = "EMAIL" if contact_email else "BOTH"
-        slug = re.sub(r'[^a-zA-Z0-9]', '', company_name.lower())
-        domain_email = f"careers@{slug}.com"
-        suggested_email = contact_email or domain_email
-        
-        alternate_emails = [e for e in valid_emails if e != suggested_email]
-        if domain_email not in alternate_emails and domain_email != suggested_email:
-            alternate_emails.append(domain_email)
+        # STRICT CONSTRAINT: Only use emails present in the post text; no synthetic guessing
+        primary_email = valid_emails[0] if valid_emails else ""
+        alternate_emails = valid_emails[1:] if len(valid_emails) > 1 else []
+        delivery_channel = "EMAIL" if primary_email else "LINKEDIN_DM"
 
         dm_text = (
             f"Hi {recruiter_name.split()[0]},\n\n"
@@ -239,7 +233,7 @@ Extract and return a JSON object with EXACTLY these keys:
             "recruiter_name": recruiter_name,
             "recruiter_title": "Recruiter / Talent Partner",
             "recruiter_profile_url": url,
-            "contact_email": suggested_email,
+            "contact_email": primary_email,
             "alternate_emails": alternate_emails,
             "delivery_channel": delivery_channel,
             "extracted_skills": extracted_skills,
