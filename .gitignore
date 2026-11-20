@@ -48,3 +48,11 @@ Resume/~$*
 .claude/
 *.swp
 *.swo
+
+# User Resumes & Documents
+Resume/
+*.docx
+*.pdf
+
+# Local launcher
+start_app.command
