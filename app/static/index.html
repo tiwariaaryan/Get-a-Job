@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobFlow AI – Multi-Agent Application Suite</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <!-- Top Navigation -->
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl shadow-md">
+                    <i class="fa-solid fa-bolt text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">JobFlow AI</h1>
+                    <p class="text-xs text-indigo-200">Multi-Agent LinkedIn Application & ATS Pipeline</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Model Selector Dropdown -->
+                <div class="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs">
+                    <i class="fa-solid fa-microchip text-indigo-400"></i>
+                    <span class="text-slate-300 font-medium">Model:</span>
+                    <select id="selectedModel" class="bg-slate-900 text-white font-medium text-xs rounded border border-slate-700 px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <option value="gemini-3.5-flash" selected>gemini-3.5-flash (Main)</option>
+                        <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Fast)</option>
+                        <option value="gemini-2.5-flash">gemini-2.5-flash (Fallback)</option>
+                    </select>
+                </div>
+
+                <div class="hidden sm:flex items-center gap-2 bg-slate-800/60 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-300">Sender:</span>
+                    <span class="font-medium text-white">taaryan.official@gmail.com</span>
+                </div>
+                <button id="checkRepliesBtn" onclick="checkAllReplies()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shadow" title="Scan 'AI Carrier' folder for HR responses">
+                    <i id="replySpinner" class="fa-solid fa-arrows-rotate"></i>
+                    <span>Check 'AI Carrier' Replies</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- URL Input & Process Box -->
+        <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fa-brands fa-linkedin text-blue-600 text-lg"></i>
+                <h2 class="text-base font-semibold text-slate-900">Step 1: Ingest LinkedIn Post URL</h2>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <i class="fa-solid fa-link"></i>
+                    </span>
+                    <input id="linkedinUrl" type="url" placeholder="Paste LinkedIn post URL (e.g. https://www.linkedin.com/posts/... or https://lnkd.in/...)"
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" />
+                </div>
+                <button id="processBtn" onclick="processPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition shadow">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Analyze & Tailor Application</span>
+                </button>
+            </div>
+
+            <!-- Optional Paste Post Text Toggle -->
+            <div class="mt-2.5">
+                <button type="button" onclick="toggleRawText()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                    <i id="toggleIcon" class="fa-solid fa-chevron-right text-[10px]"></i>
+                    <span>Paste Post Content Directly (Optional - if LinkedIn post requires login)</span>
+                </button>
+                <div id="rawTextContainer" class="hidden mt-2">
+                    <textarea id="rawJobText" rows="4" placeholder="Paste the full job post description, qualifications, and recruiter text here..."
+                        class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y"></textarea>
+                </div>
+            </div>
+
+            <!-- Pipeline Status Bar (Animated 3-Stage Progress Tracker with Stopwatch) -->
+            <div id="loadingStatus" class="hidden mt-4 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl shadow-sm space-y-3.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 font-bold text-indigo-950 text-sm">
+                        <i id="pipelineSpinner" class="fa-solid fa-wand-magic-sparkles text-indigo-600 animate-spin"></i>
+                        <span id="pipelinePhaseText">Stage 1: Scraping & Analyzing LinkedIn Intelligence...</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-3 py-1 bg-white border border-indigo-200 rounded-full text-indigo-800 text-xs font-mono font-bold shadow-xs">
+                        <i class="fa-regular fa-stopwatch text-indigo-600"></i>
+                        <span id="stopwatchTimer">0.0s</span>
+                    </div>
+                </div>
+
+                <!-- Animated Progress Bar -->
+                <div class="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 h-full transition-all duration-500 rounded-full" style="width: 15%"></div>
+                </div>
+
+                <!-- 3 Phase Status Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div id="phase1" class="flex items-center gap-2 p-2.5 rounded-xl border border-indigo-300 bg-white shadow-xs font-semibold text-indigo-900 transition-all">
+                        <i id="phase1Icon" class="fa-solid fa-circle-notch fa-spin text-indigo-600"></i>
+                        <span>1. LinkedIn Intelligence</span>
+                    </div>
+                    <div id="phase2" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white/60 text-slate-500 transition-all">
+                        <i id="phase2Icon" class="fa-regular fa-circle text-slate-400"></i>
+                        <span>2. Resume ATS & Styling</span>
+                    </div>
+                    <div id="phase3" class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white/60 text-slate-500 transition-all">
+                        <i id="phase3Icon" class="fa-regular fa-circle text-slate-400"></i>
+                        <span>3. Cold Email & DM</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Application Review Card (Appears after analysis) -->
+        <section id="reviewSection" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Review & Approve</span>
+                    <h2 class="text-lg font-bold text-slate-900" id="reviewTitle">Generated Application Preview</h2>
+                </div>
+                <span id="jobChannelBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">Email Found</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left Column: Job & ATS Keyword Analysis -->
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3.5">
+                        <div class="border-b border-slate-100 pb-3">
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Position Details</span>
+                            <h3 id="jobRole" class="text-base font-bold text-slate-900 mt-1">Lead GenAI Engineer</h3>
+                            <p id="jobCompany" class="text-sm font-medium text-indigo-600">Algomindz Solutions</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="p-2.5 bg-slate-50 rounded-lg">
+                                <span class="text-slate-400 block mb-0.5">Location</span>
+                                <span id="jobLocation" class="font-semibold text-slate-800">Noida, India</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded-lg">
+                                <span class="text-slate-400 block mb-0.5">Job Type</span>
+                                <span id="jobType" class="font-semibold text-slate-800">Full-Time / Freelance</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs text-slate-400 block mb-1">Recruiter / Author</span>
+                            <div class="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg">
+                                <span id="jobRecruiter" class="font-medium text-slate-800">Veda Nand</span>
+                                <a id="jobRecruiterLink" href="#" target="_blank" class="text-indigo-600 hover:underline">Profile <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>
+                            </div>
+                        </div>
+
+                        <!-- ATS Injected Keywords Diff -->
+                        <div>
+                            <span class="text-xs uppercase font-bold tracking-wider text-slate-400 block mb-1.5">ATS Injected Keywords (20%)</span>
+                            <div id="keywordsDiffList" class="space-y-1.5 text-xs">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column: Pixel-Perfect High-Resolution Resume Preview -->
+                <div class="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col h-[570px]">
+                    <!-- ATS Score Meter on Top of Resume Preview -->
+                    <div class="mb-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-bold text-emerald-950 uppercase tracking-wide">ATS Match Score</span>
+                                    <span id="atsBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900">Strong Fit</span>
+                                </div>
+                                <span class="text-[11px] text-emerald-800" id="atsSubtext">Tailored 20% keywords match job requirements</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span id="atsScoreValue" class="text-2xl font-black text-emerald-700 font-mono">94%</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <i class="fa-regular fa-file-lines text-indigo-600 text-sm"></i>
+                            <span class="text-xs font-bold text-slate-800">Tailored Resume Preview</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <a id="downloadDocxBtn" href="#" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium transition flex items-center gap-1">
+                                <i class="fa-regular fa-file-word text-blue-600"></i> Word
+                            </a>
+                            <a id="downloadPdfBtn" href="#" target="_blank" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[11px] font-semibold transition flex items-center gap-1">
+                                <i class="fa-regular fa-file-pdf text-red-600"></i> PDF
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 bg-slate-100/70 rounded-xl overflow-y-auto p-2 border border-slate-200 custom-scrollbar flex justify-center items-start">
+                        <img id="resumePreviewImg" src="" alt="Tailored Resume Preview" class="w-full h-auto object-contain rounded shadow bg-white border border-slate-200 transition-opacity" />
+                    </div>
+                    <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
+                        <span><i class="fa-solid fa-shield-check text-emerald-500"></i> Zero-Prompt Instant PDF & ATS Match</span>
+                        <span id="previewPageIndicator">Full 2-Page Executive Resume</span>
+                    </div>
+                </div>
+
+                <!-- Right Column: Email & DM Outreach Center -->
+                <div class="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col h-[520px]">
+                    <!-- Tabs -->
+                    <div class="flex border-b border-slate-200 mb-3 text-xs font-semibold">
+                        <button id="emailTabBtn" onclick="switchOutreachTab('email')" class="py-2 px-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-1.5">
+                            <i class="fa-regular fa-envelope"></i> Email Draft
+                        </button>
+                        <button id="dmTabBtn" onclick="switchOutreachTab('dm')" class="py-2 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-brands fa-linkedin"></i> LinkedIn DM
+                        </button>
+                    </div>
+
+                    <!-- Email Tab Content -->
+                    <div id="emailTabContent" class="flex-1 flex flex-col space-y-2.5 overflow-y-auto pr-1 custom-scrollbar text-xs">
+                        <div>
+                            <label class="block text-slate-500 font-medium mb-1">To (HR/Recruiter Email):</label>
+                            <input id="emailTo" type="email" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-slate-500 font-medium mb-1">Subject:</label>
+                            <input id="emailSubject" type="text" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none" />
+                        </div>
+                        <!-- Verified Attached PDF Card -->
+                        <div class="p-2.5 bg-gradient-to-r from-indigo-50/70 to-blue-50/70 border border-indigo-100 rounded-xl flex items-center justify-between shadow-2xs">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-800 text-[11px] block">Aaryan Gen Ai Resume.pdf</span>
+                                    <span class="text-[10px] text-slate-500">Tailored 2-Page ATS PDF Auto-Attached</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <a id="emailAttachmentPreviewLink" href="#" target="_blank" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded text-[10px] font-semibold transition flex items-center gap-1">
+                                    <i class="fa-regular fa-eye"></i> View PDF
+                                </a>
+                                <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center gap-1">
+                                    <i class="fa-solid fa-paperclip"></i> Attached
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex-1 flex flex-col">
+                            <label class="block text-slate-500 font-medium mb-1">Body:</label>
+                            <textarea id="emailBody" rows="7" class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] leading-relaxed focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                        </div>
+                        <div class="pt-2 grid grid-cols-2 gap-2">
+                            <button id="sendEmailBtn" onclick="approveAndSendEmail()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow text-xs">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Approve & Send (with PDF)</span>
+                            </button>
+                            <button id="scheduleModalBtn" onclick="openScheduleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow text-xs">
+                                <i class="fa-solid fa-clock"></i>
+                                <span>Approve & Schedule (with PDF)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- LinkedIn DM Tab Content -->
+                    <div id="dmTabContent" class="hidden flex-1 flex flex-col space-y-3 overflow-y-auto pr-1 custom-scrollbar text-xs">
+                        <div class="p-3 bg-blue-50 border border-blue-100 rounded-xl text-blue-900 text-xs">
+                            <i class="fa-solid fa-circle-info text-blue-600"></i>
+                            This post invites DMs. Copy the drafted note below and send directly on LinkedIn.
+                        </div>
+                        <div class="flex-1 flex flex-col">
+                            <label class="block text-slate-500 font-medium mb-1">Drafted LinkedIn DM:</label>
+                            <textarea id="dmBody" rows="9" class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] leading-relaxed focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="copyDmText()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Copy DM</span>
+                            </button>
+                            <button onclick="markDmSent()" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-check"></i>
+                                <span>Mark Sent</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Tracking Section: All Past Applications & Responses -->
+        <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Application History & Responses</h2>
+                    <p class="text-xs text-slate-500">Track sent applications, delivery channels, and incoming HR replies</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1.5 text-xs bg-slate-100 px-2.5 py-1 rounded-lg">
+                        <span class="text-slate-500">Total:</span>
+                        <span id="totalAppsCount" class="font-bold text-slate-800">0</span>
+                    </div>
+                    <button onclick="clearAllHistory()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium px-2.5 py-1.5 rounded-lg border border-rose-200 transition flex items-center gap-1.5" title="Clear all application history">
+                        <i class="fa-solid fa-trash-can"></i> Clear All History
+                    </button>
+                </div>
+            </div>
+
+            <!-- Applications Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-slate-400 uppercase tracking-wider font-semibold">
+                            <th class="py-3 px-3">Company & Role</th>
+                            <th class="py-3 px-3">Timeline (Posted & Drafted)</th>
+                            <th class="py-3 px-3">Location & Type</th>
+                            <th class="py-3 px-3">Contact</th>
+                            <th class="py-3 px-3">Status</th>
+                            <th class="py-3 px-3">HR Response Snippet</th>
+                            <th class="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-slate-400">No applications processed yet. Paste a link above to get started!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Schedule Send Modal (Modern Big Calendar & Quick Date Presets) -->
+    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shadow-2xs">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Schedule Job Application</h3>
+                        <p class="text-xs text-slate-500">Pick date & time — dispatches automatically from Gmail</p>
+                    </div>
+                </div>
+                <button onclick="closeScheduleModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Recipient & Attachment Banner -->
+            <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between text-xs">
+                <div class="space-y-0.5 truncate pr-2">
+                    <div class="text-slate-600 font-medium">To: <span id="modalRecipient" class="font-mono text-slate-900 font-bold"></span></div>
+                    <div class="text-slate-500 truncate">Subject: <span id="modalSubject" class="text-slate-800"></span></div>
+                </div>
+                <div class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-white border border-purple-200 rounded-lg text-emerald-700 font-semibold text-[11px] shadow-2xs">
+                    <i class="fa-solid fa-paperclip text-emerald-600"></i>
+                    <span>Aaryan Gen Ai Resume.pdf Attached</span>
+                </div>
+            </div>
+
+            <!-- Quick Presets for Current Date & Next Date -->
+            <div class="space-y-2">
+                <label class="block text-slate-700 font-bold text-xs uppercase tracking-wide">Quick One-Click Presets:</label>
+                
+                <!-- Current Date (Today) Presets -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md shrink-0">Current Date (Today)</span>
+                    <div class="flex flex-wrap gap-1.5 flex-1">
+                        <button type="button" onclick="setSchedulePreset('today-1h')" class="preset-btn py-1.5 px-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition">
+                            In 1 Hour
+                        </button>
+                        <button type="button" onclick="setSchedulePreset('today-3pm')" class="preset-btn py-1.5 px-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition">
+                            Today 15:00
+                        </button>
+                        <button type="button" onclick="setSchedulePreset('today-530pm')" class="preset-btn py-1.5 px-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition">
+                            Today 17:30
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Next Date (Tomorrow) Presets -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-1 rounded-md shrink-0">Next Date (Tomorrow)</span>
+                    <div class="flex flex-wrap gap-1.5 flex-1">
+                        <button type="button" onclick="setSchedulePreset('tomorrow-9am')" class="preset-btn py-1.5 px-2.5 bg-purple-100/70 border-purple-300 text-purple-900 rounded-lg text-xs font-bold border transition shadow-2xs">
+                            Tomorrow 09:00 (Recommended)
+                        </button>
+                        <button type="button" onclick="setSchedulePreset('tomorrow-1130am')" class="preset-btn py-1.5 px-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition">
+                            Tomorrow 11:30
+                        </button>
+                        <button type="button" onclick="setSchedulePreset('tomorrow-2pm')" class="preset-btn py-1.5 px-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition">
+                            Tomorrow 14:00
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Interactive Calendar & Time Picker -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 pt-1">
+                
+                <!-- Left: Big Interactive Month Calendar (7 Cols) -->
+                <div class="md:col-span-7 bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                        <button type="button" onclick="changeCalendarMonth(-1)" class="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <span id="calendarMonthYear" class="font-bold text-slate-800 text-xs tracking-wide">November 2026</span>
+                        <button type="button" onclick="changeCalendarMonth(1)" class="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Weekdays Header -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase py-1">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    </div>
+
+                    <!-- Days Grid (Populated dynamically) -->
+                    <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1 text-xs">
+                        <!-- Clickable Day Buttons -->
+                    </div>
+                </div>
+
+                <!-- Right: Time Slots & Custom Time (5 Cols) -->
+                <div class="md:col-span-5 bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 flex flex-col justify-between space-y-3">
+                    <div>
+                        <label class="block text-slate-700 font-bold text-xs uppercase tracking-wide mb-2">Select Send Time (24h Zoning):</label>
+                        <!-- Grid of Quick Time Pills -->
+                        <div class="grid grid-cols-2 gap-1.5" id="timeSlotsContainer">
+                            <button type="button" onclick="selectTimeSlot('09:00')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                09:00
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('10:30')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                10:30
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('11:30')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                11:30
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('14:00')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                14:00
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('15:30')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                15:30
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('17:00')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                17:00
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('18:30')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                18:30
+                            </button>
+                            <button type="button" onclick="selectTimeSlot('20:00')" class="time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition">
+                                20:00
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Time Field -->
+                    <div class="border-t border-slate-200 pt-2.5">
+                        <label class="block text-slate-500 font-medium text-[11px] mb-1">Custom Exact Time:</label>
+                        <input id="customTimeInput" type="time" onchange="onCustomTimeChange(this.value)" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-purple-500 outline-none text-slate-800" />
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Hidden input maintaining final ISO timestamp -->
+            <input id="scheduleDatetimeInput" type="hidden" />
+
+            <!-- Selected Live Summary Banner -->
+            <div class="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-purple-600 text-sm"></i>
+                    <div>
+                        <span class="text-[10px] text-purple-700 font-bold uppercase tracking-wider block">Auto-Dispatch Time</span>
+                        <span id="selectedScheduleSummaryText" class="font-bold text-slate-900 text-xs">Tomorrow at 09:00</span>
+                    </div>
+                </div>
+                <span class="text-[10px] bg-purple-200/80 text-purple-900 font-bold px-2 py-0.5 rounded-full">
+                    <i class="fa-solid fa-bolt"></i> Gmail Sync Active
+                </span>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeScheduleModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                    Cancel
+                </button>
+                <button id="confirmScheduleBtn" onclick="confirmScheduleEmail()" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition shadow flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Confirm & Schedule (with PDF)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 hidden bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 z-50 transition-all transform translate-y-2">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        let currentJobId = null;
+        let timerInterval = null;
+        let startTime = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadJobs();
+        });
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById("toast");
+            const msg = document.getElementById("toastMsg");
+            const icon = document.getElementById("toastIcon");
+
+            msg.textContent = message;
+            if (isError) {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-400";
+            } else {
+                icon.className = "fa-solid fa-circle-check text-emerald-400";
+            }
+
+            toast.classList.remove("hidden", "translate-y-2");
+            setTimeout(() => {
+                toast.classList.add("translate-y-2", "hidden");
+            }, 3500);
+        }
+
+        function toggleRawText() {
+            const container = document.getElementById("rawTextContainer");
+            const icon = document.getElementById("toggleIcon");
+            if (container.classList.contains("hidden")) {
+                container.classList.remove("hidden");
+                icon.className = "fa-solid fa-chevron-down text-[10px]";
+            } else {
+                container.classList.add("hidden");
+                icon.className = "fa-solid fa-chevron-right text-[10px]";
+            }
+        }
+
+        function startStopwatch() {
+            startTime = Date.now();
+            const timerEl = document.getElementById("stopwatchTimer");
+            const progressBar = document.getElementById("progressBar");
+            const phaseText = document.getElementById("pipelinePhaseText");
+            const p1 = document.getElementById("phase1");
+            const p1Icon = document.getElementById("phase1Icon");
+            const p2 = document.getElementById("phase2");
+            const p2Icon = document.getElementById("phase2Icon");
+            const p3 = document.getElementById("phase3");
+            const p3Icon = document.getElementById("phase3Icon");
+
+            progressBar.style.width = "10%";
+            phaseText.textContent = "Stage 1: Scraping & Analyzing LinkedIn Intelligence...";
+            p1.className = "flex items-center gap-2 p-2.5 rounded-xl border border-indigo-400 bg-white shadow-xs font-semibold text-indigo-900 transition-all";
+            p1Icon.className = "fa-solid fa-circle-notch fa-spin text-indigo-600";
+            p2.className = "flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white/60 text-slate-500 transition-all";
+            p2Icon.className = "fa-regular fa-circle text-slate-400";
+            p3.className = "flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white/60 text-slate-500 transition-all";
+            p3Icon.className = "fa-regular fa-circle text-slate-400";
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                timerEl.textContent = `${elapsed.toFixed(1)}s`;
+
+                if (elapsed >= 1.5 && elapsed < 3.2) {
+                    progressBar.style.width = "55%";
+                    phaseText.textContent = "Stage 2: Tailoring 20% ATS Keywords & Compiling Resume...";
+                    p1.className = "flex items-center gap-2 p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-800 font-semibold";
+                    p1Icon.className = "fa-solid fa-circle-check text-emerald-600";
+                    p2.className = "flex items-center gap-2 p-2.5 rounded-xl border border-indigo-400 bg-white shadow-xs font-semibold text-indigo-900";
+                    p2Icon.className = "fa-solid fa-circle-notch fa-spin text-indigo-600";
+                } else if (elapsed >= 3.2) {
+                    progressBar.style.width = "85%";
+                    phaseText.textContent = "Stage 3: Drafting Cold Outreach Email & LinkedIn DM...";
+                    p2.className = "flex items-center gap-2 p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-800 font-semibold";
+                    p2Icon.className = "fa-solid fa-circle-check text-emerald-600";
+                    p3.className = "flex items-center gap-2 p-2.5 rounded-xl border border-indigo-400 bg-white shadow-xs font-semibold text-indigo-900";
+                    p3Icon.className = "fa-solid fa-circle-notch fa-spin text-indigo-600";
+                }
+            }, 100);
+        }
+
+        function stopStopwatch(success = true) {
+            clearInterval(timerInterval);
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            const timerEl = document.getElementById("stopwatchTimer");
+            const progressBar = document.getElementById("progressBar");
+            const phaseText = document.getElementById("pipelinePhaseText");
+            const p3 = document.getElementById("phase3");
+            const p3Icon = document.getElementById("phase3Icon");
+
+            if (success) {
+                progressBar.style.width = "100%";
+                phaseText.textContent = `All 3 Stages Completed in ${elapsed}s!`;
+                p3.className = "flex items-center gap-2 p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-800 font-semibold";
+                p3Icon.className = "fa-solid fa-circle-check text-emerald-600";
+                timerEl.textContent = `⚡ ${elapsed}s`;
+            }
+            return elapsed;
+        }
+
+        async function processPost() {
+            const urlInput = document.getElementById("linkedinUrl");
+            const rawTextInput = document.getElementById("rawJobText");
+            const modelSelect = document.getElementById("selectedModel");
+            const url = urlInput.value.trim();
+            const raw_text = rawTextInput ? rawTextInput.value.trim() : null;
+            const model = modelSelect ? modelSelect.value : "gemini-3.5-flash";
+
+            if (!url) {
+                showToast("Please enter a valid LinkedIn URL.", true);
+                return;
+            }
+
+            const processBtn = document.getElementById("processBtn");
+            const statusBox = document.getElementById("loadingStatus");
+            const reviewSec = document.getElementById("reviewSection");
+
+            processBtn.disabled = true;
+            processBtn.classList.add("opacity-50");
+            statusBox.classList.remove("hidden");
+            reviewSec.classList.add("hidden");
+
+            startStopwatch();
+
+            try {
+                const resp = await fetch("/api/jobs/process", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url, raw_text, model })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to process post.");
+
+                const totalSeconds = stopStopwatch(true);
+                showToast(`Application prepared in ${totalSeconds}s with ${data.job.ats_score || 94}% ATS Match!`);
+                displayJobReview(data.job);
+                loadJobs();
+            } catch (err) {
+                stopStopwatch(false);
+                showToast(err.message, true);
+            } finally {
+                processBtn.disabled = false;
+                processBtn.classList.remove("opacity-50");
+            }
+        }
+
+        function displayJobReview(job) {
+            currentJobId = job.id;
+            const reviewSec = document.getElementById("reviewSection");
+            reviewSec.classList.remove("hidden");
+
+            // Fill job details
+            document.getElementById("jobRole").textContent = job.role_title || "GenAI Role";
+            document.getElementById("jobCompany").textContent = job.company_name || "Company";
+            document.getElementById("jobLocation").textContent = job.location || "Flexible / Remote";
+            document.getElementById("jobType").textContent = `${job.job_type || 'Full-Time'} (${job.experience || 'Flexible'})`;
+            document.getElementById("jobRecruiter").textContent = job.recruiter_name || "Hiring Lead";
+            document.getElementById("jobRecruiterLink").href = job.recruiter_profile_url || job.linkedin_url;
+
+            // Channel badge
+            const badge = document.getElementById("jobChannelBadge");
+            if (job.delivery_channel === "EMAIL") {
+                badge.textContent = "Email Found";
+                badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800";
+            } else if (job.delivery_channel === "BOTH") {
+                badge.textContent = "Email & DM Available";
+                badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800";
+            } else {
+                badge.textContent = "Requires LinkedIn DM";
+                badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800";
+            }
+
+            // ATS Match Score Display
+            const score = job.ats_score || 94;
+            document.getElementById("atsScoreValue").textContent = `${score}%`;
+            const atsBadge = document.getElementById("atsBadge");
+            const atsSub = document.getElementById("atsSubtext");
+            if (score >= 90) {
+                atsBadge.textContent = "Strong Fit";
+                atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900";
+                atsSub.textContent = `High ATS compatibility for ${job.role_title || 'this position'}`;
+            } else if (score >= 80) {
+                atsBadge.textContent = "Good Fit";
+                atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-200 text-blue-900";
+                atsSub.textContent = `Target keywords successfully adapted`;
+            } else {
+                atsBadge.textContent = "Moderate Fit";
+                atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900";
+                atsSub.textContent = `Baseline requirements met`;
+            }
+
+            // Keyword diffs
+            const diffsList = document.getElementById("keywordsDiffList");
+            diffsList.innerHTML = "";
+            const diffs = job.modified_keywords || [];
+            if (diffs.length === 0) {
+                diffsList.innerHTML = "<div class='text-slate-400 italic'>Standard ATS alignment applied.</div>";
+            } else {
+                diffs.forEach(d => {
+                    const el = document.createElement("div");
+                    el.className = "p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between";
+                    el.innerHTML = `
+                        <span class="text-slate-500">${d.section}:</span>
+                        <span class="font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+ ${d.new}</span>
+                    `;
+                    diffsList.appendChild(el);
+                });
+            }
+
+            // High-resolution image preview & download links
+            const previewImg = document.getElementById("resumePreviewImg");
+            previewImg.src = `/api/jobs/${job.id}/preview?t=${Date.now()}`;
+            document.getElementById("downloadPdfBtn").href = `/api/jobs/${job.id}/pdf`;
+            document.getElementById("downloadDocxBtn").href = `/api/jobs/${job.id}/docx`;
+            const attLink = document.getElementById("emailAttachmentPreviewLink");
+            if (attLink) attLink.href = `/api/jobs/${job.id}/pdf`;
+
+            // Outreach Inputs
+            document.getElementById("emailTo").value = job.contact_email || "";
+            document.getElementById("emailSubject").value = job.email_subject || "";
+            document.getElementById("emailBody").value = job.email_body || "";
+            document.getElementById("dmBody").value = job.linkedin_dm_text || "";
+
+            // Switch to Email tab by default if email exists, else DM tab
+            if (job.contact_email) {
+                switchOutreachTab("email");
+            } else {
+                switchOutreachTab("dm");
+            }
+
+            // Scroll to review
+            reviewSec.scrollIntoView({ behavior: "smooth" });
+        }
+
+        function switchOutreachTab(tab) {
+            const emailBtn = document.getElementById("emailTabBtn");
+            const dmBtn = document.getElementById("dmTabBtn");
+            const emailContent = document.getElementById("emailTabContent");
+            const dmContent = document.getElementById("dmTabContent");
+
+            if (tab === "email") {
+                emailBtn.className = "py-2 px-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-1.5";
+                dmBtn.className = "py-2 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-1.5";
+                emailContent.classList.remove("hidden");
+                dmContent.classList.add("hidden");
+            } else {
+                dmBtn.className = "py-2 px-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-1.5";
+                emailBtn.className = "py-2 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-1.5";
+                dmContent.classList.remove("hidden");
+                emailContent.classList.add("hidden");
+            }
+        }
+
+        async function approveAndSendEmail() {
+            if (!currentJobId) return;
+            const to = document.getElementById("emailTo").value.trim();
+            const subject = document.getElementById("emailSubject").value.trim();
+            const body = document.getElementById("emailBody").value.trim();
+
+            if (!to) {
+                showToast("Please provide a recipient email address.", true);
+                return;
+            }
+
+            const sendBtn = document.getElementById("sendEmailBtn");
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = "<i class='fa-solid fa-circle-notch fa-spin'></i> Dispatching Email via Gmail...";
+
+            try {
+                const resp = await fetch(`/api/jobs/${currentJobId}/send`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ recipient_email: to, subject, body })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to dispatch email.");
+
+                showToast("Application email successfully dispatched!");
+                loadJobs();
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = "<i class='fa-solid fa-paper-plane'></i> Approve & Send";
+            }
+        }
+
+        function openScheduleModal() {
+            if (!currentJobId) {
+                showToast("Please select an application first.", true);
+                return;
+            }
+            const to = document.getElementById("emailTo").value.trim();
+            const subject = document.getElementById("emailSubject").value.trim();
+
+            if (!to) {
+                showToast("Please provide a recipient email address.", true);
+                return;
+            }
+
+            document.getElementById("modalRecipient").textContent = to;
+            document.getElementById("modalSubject").textContent = subject || "Application Email";
+
+            setSchedulePreset("tomorrow-9am");
+            document.getElementById("scheduleModal").classList.remove("hidden");
+        }
+
+        function closeScheduleModal() {
+            document.getElementById("scheduleModal").classList.add("hidden");
+        }
+
+        let calCurrentYear = new Date().getFullYear();
+        let calCurrentMonth = new Date().getMonth();
+        let selectedScheduleDate = new Date();
+        let selectedScheduleTime = "09:00";
+
+        function renderCalendar() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const el = document.getElementById("calendarMonthYear");
+            if (el) el.textContent = `${monthNames[calCurrentMonth]} ${calCurrentYear}`;
+
+            const grid = document.getElementById("calendarDaysGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            const firstDay = new Date(calCurrentYear, calCurrentMonth, 1).getDay();
+            const daysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement("div");
+                empty.className = "py-2";
+                grid.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cellDate = new Date(calCurrentYear, calCurrentMonth, day);
+                cellDate.setHours(0, 0, 0, 0);
+                const isPast = cellDate < today;
+                const isToday = cellDate.getTime() === today.getTime();
+                const isSelected = selectedScheduleDate && 
+                    cellDate.getFullYear() === selectedScheduleDate.getFullYear() &&
+                    cellDate.getMonth() === selectedScheduleDate.getMonth() &&
+                    cellDate.getDate() === selectedScheduleDate.getDate();
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.textContent = day;
+                btn.className = "py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center ";
+
+                if (isPast) {
+                    btn.className += "text-slate-300 cursor-not-allowed";
+                    btn.disabled = true;
+                } else if (isSelected) {
+                    btn.className += "bg-purple-600 text-white shadow-sm ring-2 ring-purple-300 font-bold";
+                } else if (isToday) {
+                    btn.className += "bg-indigo-50 border border-indigo-300 text-indigo-700 hover:bg-purple-100 font-bold";
+                } else {
+                    btn.className += "hover:bg-purple-100 text-slate-700";
+                }
+
+                if (!isPast) {
+                    btn.onclick = () => {
+                        selectedScheduleDate = new Date(calCurrentYear, calCurrentMonth, day);
+                        updateScheduleTimestamp();
+                        renderCalendar();
+                    };
+                }
+                grid.appendChild(btn);
+            }
+        }
+
+        function changeCalendarMonth(offset) {
+            calCurrentMonth += offset;
+            if (calCurrentMonth > 11) {
+                calCurrentMonth = 0;
+                calCurrentYear++;
+            } else if (calCurrentMonth < 0) {
+                calCurrentMonth = 11;
+                calCurrentYear--;
+            }
+            renderCalendar();
+        }
+
+        function selectTimeSlot(timeStr) {
+            selectedScheduleTime = timeStr;
+            const customInput = document.getElementById("customTimeInput");
+            if (customInput) customInput.value = timeStr;
+            updateTimeSlotStyles();
+            updateScheduleTimestamp();
+        }
+
+        function onCustomTimeChange(val) {
+            if (val) {
+                selectedScheduleTime = val;
+                updateTimeSlotStyles();
+                updateScheduleTimestamp();
+            }
+        }
+
+        function updateTimeSlotStyles() {
+            document.querySelectorAll(".time-slot-btn").forEach(btn => {
+                const targetText = formatTime24Hour(selectedScheduleTime).trim();
+                if (btn.textContent.trim().startsWith(targetText)) {
+                    btn.className = "time-slot-btn py-1.5 px-2 bg-purple-600 text-white rounded-lg text-xs font-bold text-center shadow-xs transition";
+                } else {
+                    btn.className = "time-slot-btn py-1.5 px-2 bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium text-center transition";
+                }
+            });
+        }
+
+        function formatTime24Hour(time24) {
+            if (!time24) return "09:00";
+            const parts = time24.split(":");
+            let hour = parseInt(parts[0], 10);
+            const m = parts[1] || "00";
+            const ampm = hour >= 12 ? "PM" : "AM";
+            hour = hour % 12 || 12;
+            const padH = String(hour).padStart(2, "0");
+            return `${padH}:${m} ${ampm}`;
+        }
+
+        function updateScheduleTimestamp() {
+            if (!selectedScheduleDate) return;
+            const pad = (n) => String(n).padStart(2, "0");
+            const y = selectedScheduleDate.getFullYear();
+            const m = pad(selectedScheduleDate.getMonth() + 1);
+            const d = pad(selectedScheduleDate.getDate());
+            const iso = `${y}-${m}-${d}T${selectedScheduleTime}`;
+            const hiddenInput = document.getElementById("scheduleDatetimeInput");
+            if (hiddenInput) hiddenInput.value = iso;
+
+            const options = { weekday: "short", month: "short", day: "numeric" };
+            const dateFormatted = selectedScheduleDate.toLocaleDateString("en-US", options);
+            const timeFormatted = formatTime24Hour(selectedScheduleTime);
+            const summaryEl = document.getElementById("selectedScheduleSummaryText");
+            if (summaryEl) summaryEl.textContent = `${dateFormatted} at ${timeFormatted} (24h)`;
+        }
+
+        function setSchedulePreset(type) {
+            const now = new Date();
+            let targetDate = new Date();
+            let targetTime = "09:00";
+
+            if (type === "today-1h") {
+                targetDate = new Date(now.getTime() + 60 * 60 * 1000);
+                const pad = (n) => String(n).padStart(2, "0");
+                targetTime = `${pad(targetDate.getHours())}:${pad(targetDate.getMinutes())}`;
+            } else if (type === "today-3pm") {
+                targetTime = "15:00";
+            } else if (type === "today-530pm") {
+                targetTime = "17:30";
+            } else if (type === "tomorrow-9am") {
+                targetDate.setDate(now.getDate() + 1);
+                targetTime = "09:00";
+            } else if (type === "tomorrow-1130am") {
+                targetDate.setDate(now.getDate() + 1);
+                targetTime = "11:30";
+            } else if (type === "tomorrow-2pm") {
+                targetDate.setDate(now.getDate() + 1);
+                targetTime = "14:00";
+            }
+
+            selectedScheduleDate = targetDate;
+            selectedScheduleTime = targetTime;
+            calCurrentMonth = targetDate.getMonth();
+            calCurrentYear = targetDate.getFullYear();
+
+            const customInput = document.getElementById("customTimeInput");
+            if (customInput) customInput.value = targetTime;
+
+            updateScheduleTimestamp();
+            updateTimeSlotStyles();
+            renderCalendar();
+        }
+
+        async function confirmScheduleEmail() {
+            if (!currentJobId) return;
+
+            const to = document.getElementById("emailTo").value.trim();
+            const subject = document.getElementById("emailSubject").value.trim();
+            const body = document.getElementById("emailBody").value.trim();
+            const scheduledAt = document.getElementById("scheduleDatetimeInput").value;
+
+            if (!scheduledAt) {
+                showToast("Please select a valid date and time.", true);
+                return;
+            }
+
+            const confirmBtn = document.getElementById("confirmScheduleBtn");
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = "<i class='fa-solid fa-circle-notch fa-spin'></i> Scheduling in Gmail...";
+
+            try {
+                const resp = await fetch(`/api/jobs/${currentJobId}/schedule`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        recipient_email: to,
+                        subject: subject,
+                        body: body,
+                        scheduled_at: scheduledAt
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to schedule email.");
+
+                closeScheduleModal();
+                showToast(`Application successfully scheduled for ${new Date(scheduledAt).toLocaleString()}! Draft created in Gmail.`);
+                loadJobs();
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = "<i class='fa-solid fa-calendar-check'></i> <span>Confirm & Schedule</span>";
+            }
+        }
+
+        function copyDmText() {
+            const dmText = document.getElementById("dmBody").value;
+            navigator.clipboard.writeText(dmText).then(() => {
+                showToast("LinkedIn DM text copied to clipboard!");
+            }).catch(() => {
+                showToast("Could not copy automatically. Please copy manually.", true);
+            });
+        }
+
+        async function markDmSent() {
+            if (!currentJobId) return;
+            try {
+                const resp = await fetch(`/api/jobs/${currentJobId}/mark_dm`, { method: "POST" });
+                if (resp.ok) {
+                    showToast("Marked as Sent via LinkedIn DM.");
+                    loadJobs();
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function checkAllReplies() {
+            const spinner = document.getElementById("replySpinner");
+            spinner.classList.add("fa-spin");
+            try {
+                const resp = await fetch("/api/jobs/check_replies", { method: "POST" });
+                const data = await resp.json();
+                if (data.replies_found > 0) {
+                    showToast(`Found ${data.replies_found} new HR response(s)!`);
+                } else {
+                    showToast("No new responses found in Gmail.");
+                }
+                loadJobs();
+            } catch (err) {
+                showToast("Error checking replies: " + err.message, true);
+            } finally {
+                spinner.classList.remove("fa-spin");
+            }
+        }
+
+        let loadedJobs = {};
+
+        async function loadJobs() {
+            try {
+                const resp = await fetch("/api/jobs");
+                const data = await resp.json();
+                const tbody = document.getElementById("jobsTableBody");
+                const countBadge = document.getElementById("totalAppsCount");
+
+                countBadge.textContent = data.jobs.length;
+
+                if (data.jobs.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='7' class='text-center py-8 text-slate-400'>No applications processed yet. Paste a link above to get started!</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                loadedJobs = {};
+                data.jobs.forEach(job => {
+                    loadedJobs[job.id] = job;
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer";
+                    tr.onclick = (e) => {
+                        if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.closest("button") && !e.target.closest("a")) {
+                            displayJobReview(job);
+                        }
+                    };
+
+                    let statusLabel = "Saved Draft (Ready to Apply)";
+                    let statusClass = "bg-amber-100 text-amber-800 font-semibold";
+                    if (job.status === "SENT") {
+                        statusLabel = "Email Sent";
+                        statusClass = "bg-blue-100 text-blue-800 font-semibold";
+                    } else if (job.status === "SCHEDULED") {
+                        let schedTime = "Scheduled";
+                        if (job.scheduled_at) {
+                            try {
+                                const sd = new Date(job.scheduled_at);
+                                const dStr = sd.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                                const tStr = sd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+                                schedTime = `${dStr}, ${tStr} (24h)`;
+                            } catch(e) {
+                                schedTime = job.scheduled_at.substring(0, 16);
+                            }
+                        }
+                        statusLabel = `⏰ Scheduled (${schedTime})`;
+                        statusClass = "bg-purple-100 text-purple-800 font-bold";
+                    } else if (job.status === "DM_SENT") {
+                        statusLabel = "LinkedIn DM Sent";
+                        statusClass = "bg-indigo-100 text-indigo-800 font-semibold";
+                    } else if (job.status === "REPLIED") {
+                        statusLabel = "HR Replied";
+                        statusClass = "bg-emerald-100 text-emerald-800 font-bold animate-pulse";
+                    }
+
+                    let draftedDate = "Recently";
+                    if (job.created_at) {
+                        try {
+                            const d = new Date(job.created_at);
+                            draftedDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+                        } catch(e) {
+                            draftedDate = job.created_at.substring(0, 16);
+                        }
+                    }
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-3">
+                            <span class="font-bold text-slate-900 block">${job.company_name || 'N/A'}</span>
+                            <span class="text-slate-500">${job.role_title || 'N/A'}</span>
+                            <div class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                                <i class="fa-solid fa-paperclip text-emerald-600"></i>
+                                <span>Aaryan Gen Ai Resume.pdf</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-days text-indigo-500"></i>
+                                <span>${job.post_date || 'Recently'}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock text-slate-400"></i>
+                                <span>Drafted: ${draftedDate}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3">
+                            <span class="block">${job.location || 'N/A'}</span>
+                            <span class="text-[10px] text-indigo-600 font-medium">${job.job_type || ''}</span>
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[11px]">
+                            ${job.contact_email || '<span class="text-slate-400 italic">LinkedIn DM</span>'}
+                        </td>
+                        <td class="py-3 px-3">
+                            <span class="px-2 py-0.5 rounded-full text-[11px] ${statusClass}">${statusLabel}</span>
+                        </td>
+                        <td class="py-3 px-3 max-w-xs truncate text-slate-600" title="${job.reply_snippet || ''}">
+                            ${job.reply_snippet || '<span class="text-slate-300">-</span>'}
+                        </td>
+                        <td class="py-3 px-3 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button onclick="event.stopPropagation(); displayJobReview(loadedJobs[${job.id}])" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg font-medium text-xs transition flex items-center gap-1">
+                                    <i class="fa-regular fa-folder-open"></i> Review & Send
+                                </button>
+                                <button onclick="deleteJob(${job.id}, event)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1.5 rounded-lg font-medium text-xs border border-rose-200 transition" title="Delete application">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error("Failed to load jobs", err);
+            }
+        }
+
+        async function deleteJob(jobId, event) {
+            if (event) event.stopPropagation();
+            if (!confirm(`Delete application #${jobId} from history?`)) return;
+
+            try {
+                const resp = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to delete application.");
+
+                showToast(`Application #${jobId} deleted successfully.`);
+                if (currentJobId === jobId) {
+                    document.getElementById("reviewSection").classList.add("hidden");
+                    currentJobId = null;
+                }
+                loadJobs();
+            } catch (err) {
+                showToast("Delete failed: " + err.message, true);
+            }
+        }
+
+        async function clearAllHistory() {
+            const count = document.getElementById("totalAppsCount").textContent;
+            if (count === "0") {
+                showToast("Application history is already empty.");
+                return;
+            }
+            if (!confirm("Are you sure you want to delete ALL application history and saved drafts? This cannot be undone.")) return;
+
+            try {
+                const resp = await fetch("/api/jobs", { method: "DELETE" });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Failed to clear history.");
+
+                showToast("All application history cleared successfully.");
+                document.getElementById("reviewSection").classList.add("hidden");
+                currentJobId = null;
+                loadJobs();
+            } catch (err) {
+                showToast("Clear failed: " + err.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

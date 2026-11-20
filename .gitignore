@@ -1,0 +1,50 @@
+# Environment & Secrets (NEVER push secrets)
+.env
+*.env.local
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Local runtime logs & PIDs
+*.pid
+.scheduler.pid
+*.log
+scheduler.log
+
+# Local SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+jobs.db
+
+# Generated job resumes & preview artifacts
+generated_resumes/
+
+# MS Office lock files
+Resume/~$*
+~$*
+
+# IDE & Editor files
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
