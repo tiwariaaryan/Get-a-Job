@@ -58,7 +58,7 @@ class ResumeAgent:
                 sp.font.name = "Calibri"
                 sp.font.size = Pt(10)
 
-    def tailor_resume(self, job_id: int, role_title: str, target_skills: List[str], raw_jd: str = "") -> Dict[str, Any]:
+    def tailor_resume(self, job_id: int, role_title: str, target_skills: List[str], raw_jd: str = "", exp_min: float = 0.0, exp_max: float = 8.0) -> Dict[str, Any]:
         """Modify keywords dynamically for ATS compliance, apply blue skill boxes in multiple lines, and compile full 2-page documents."""
         doc = docx.Document(self.template_docx_path)
         modified_keywords = []
@@ -182,7 +182,7 @@ class ResumeAgent:
         preview_image_path = self._generate_png_preview(custom_pdf_path, job_id)
 
         # 4. Calculate ATS Match Score
-        ats_score = self._calculate_ats_score(role_title, target_skills, raw_jd, doc)
+        ats_score = self._calculate_ats_score(role_title, target_skills, raw_jd, doc, exp_min=exp_min, exp_max=exp_max)
 
         return {
             "custom_docx_path": custom_docx_path,
@@ -192,25 +192,55 @@ class ResumeAgent:
             "ats_score": ats_score
         }
 
-    def _calculate_ats_score(self, role: str, target_skills: List[str], raw_jd: str, doc: docx.Document) -> int:
-        """Calculate realistic, highly accurate ATS Match Score percentage."""
+    def _calculate_ats_score(self, role: str, target_skills: List[str], raw_jd: str, doc: docx.Document, exp_min: float = 0.0, exp_max: float = 8.0) -> int:
+        """Calculate realistic, hard quality check 4-pillar ATS Match Score (45% to 94%)."""
         full_resume_text = " ".join([p.text.lower() for p in doc.paragraphs])
         
+        # Pillar 1: Exact Keyword Overlap (40 points max)
         if not target_skills:
             target_skills = ["python", "generative ai", "llms", "fastapi"]
         
-        matched_count = 0
-        for s in target_skills:
-            if s.lower() in full_resume_text:
-                matched_count += 1
-                
+        matched_count = sum(1 for s in target_skills if s.lower() in full_resume_text)
         skill_ratio = matched_count / max(len(target_skills), 1)
-        title_bonus = 0.25 if any(t in full_resume_text for t in role.lower().split() if len(t) > 3) else 0.15
-        exp_bonus = 0.25
+        pillar_keywords = skill_ratio * 40.0
         
-        raw_score = (skill_ratio * 0.50) + title_bonus + exp_bonus
-        final_pct = int(min(max(raw_score * 100, 78), 98))
-        return final_pct
+        # Pillar 2: Role Title & AI Competency Alignment (25 points max)
+        role_lower = (role or "").lower()
+        ai_role_keywords = ["ai", "genai", "generative ai", "llm", "machine learning", "ml", "deep learning", "nlp", "agent", "rag", "forward deployed"]
+        is_ai = any(ak in role_lower for ak in ai_role_keywords) or any(ak in raw_jd.lower() for ak in ["genai", "llm", "agentic", "langchain", "prompt engineering"])
+        
+        if is_ai:
+            clean_tokens = [t for t in re.sub(r'[^a-zA-Z]', ' ', role_lower).split() if len(t) > 2 and t not in ["senior", "lead", "engineer", "developer", "specialist", "role", "position"]]
+            matching_tokens = sum(1 for t in clean_tokens if t in full_resume_text)
+            if clean_tokens:
+                token_ratio = matching_tokens / len(clean_tokens)
+                pillar_role = 18.0 + (token_ratio * 7.0)
+            else:
+                pillar_role = 22.0
+        else:
+            pillar_role = 8.0
+            
+        # Pillar 3: Experience & Seniority Alignment (20 points max)
+        # Candidate has 5.5 years. Target job range: 0 to 8 years.
+        if exp_max > 8.0 or any(phrase in raw_jd.lower() for phrase in ["9+ years", "10+ years", "12+ years", "9 to", "10 to", "12 to"]):
+            pillar_exp = 7.0
+        elif exp_min <= 5.5 <= exp_max:
+            pillar_exp = 20.0
+        elif exp_max <= 3.0:
+            pillar_exp = 18.0
+        elif exp_min <= 7.0:
+            pillar_exp = 17.0
+        else:
+            pillar_exp = 14.0
+            
+        # Pillar 4: Production Framework & Tooling Depth (15 points max)
+        key_frameworks = ["langchain", "langgraph", "rag", "pytorch", "fastapi", "docker", "vllm", "vector database"]
+        matched_frameworks = sum(1 for fw in key_frameworks if fw in full_resume_text and (fw in raw_jd.lower() or fw in " ".join(target_skills).lower()))
+        pillar_tools = min(15.0, 9.0 + (matched_frameworks * 1.5))
+        
+        raw_total = pillar_keywords + pillar_role + pillar_exp + pillar_tools
+        final_ats = int(min(max(raw_total, 45), 94))
+        return final_ats
 
     def _compile_pixel_perfect_pdf(self, doc: docx.Document, pdf_path: str, summary_text: str, core_rows: List[List[str]] = None, tech_rows: List[List[str]] = None):
         """Compile complete 2-page PDF with multi-line skills tables and full-height Page 1 (including Introlligent & PE-AI-PLATFORM)."""

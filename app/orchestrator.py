@@ -1,16 +1,78 @@
 import os
-from typing import Dict, Any, List
-from .database import save_job, get_job, get_all_jobs, update_job_status
+import re
+from datetime import datetime
+from typing import Dict, Any, List, Optional
+from .database import save_job, get_job, get_all_jobs, update_job_status, check_duplicate_application
 from .agents.linkedin_agent import LinkedInAgent
 from .agents.resume_agent import ResumeAgent
 from .agents.email_agent import EmailAgent
 from .llm_client import GeminiClient
 
+WORKSPACE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+def evaluate_eligibility(role_title: str, experience_text: str, raw_jd: str, exp_min: float, exp_max: float) -> Dict[str, Any]:
+    """
+    Gatekeeper Eligibility Filter:
+    1. AI Role Check: Must be AI Developer, ML Engineer, NLP, LangChain, LangGraph, Forward Deployed Engineer, GenAI, etc.
+    2. Experience Check: Candidate has 5.5 years. Job must be between 0 to 8 years experience.
+    """
+    role_lower = (role_title or "").lower()
+    jd_lower = (raw_jd or "").lower()
+    exp_lower = (experience_text or "").lower()
+    
+    flag_reasons = []
+    
+    # 1. AI Role Check
+    ai_keywords = [
+        "ai", "genai", "generative ai", "llm", "large language model",
+        "machine learning", "ml", "deep learning", "nlp", "natural language",
+        "langchain", "langgraph", "agentic", "agent", "agents", "rag",
+        "forward deployed", "computer vision", "prompt engineer", "prompt engineering",
+        "vllm", "diffusion", "neural", "pytorch", "tensorflow"
+    ]
+    has_ai_in_title = any(re.search(r'\b' + re.escape(k) + r'\b', role_lower) for k in ai_keywords)
+    has_ai_in_jd = any(re.search(r'\b' + re.escape(k) + r'\b', jd_lower) for k in ["generative ai", "llm", "langchain", "langgraph", "rag", "multi-agent", "agentic", "prompt engineering"])
+    
+    is_ai_role = has_ai_in_title or has_ai_in_jd
+    if not is_ai_role:
+        flag_reasons.append("⚠️ Flagged: Non-AI Role (Candidate specializes in Generative AI / LLMs).")
+
+    # 2. Experience Check: Candidate has 5.5 years. Target: 0 to 8 years.
+    is_exp_eligible = True
+    if exp_max > 8.0 or any(phrase in exp_lower or phrase in jd_lower for phrase in ["9+ years", "10+ years", "11+ years", "12+ years", "15+ years", "9 to 12", "10 to 15", "8-12 years", "8 to 12 years"]):
+        is_exp_eligible = False
+        flag_reasons.append(f"⚠️ Flagged: Requires >8 Years Experience (Job asks {experience_text or 'senior level'}, candidate has 5.5 years).")
+        
+    is_flagged = bool(flag_reasons)
+    
+    # Compatibility calculation
+    if is_ai_role and is_exp_eligible:
+        if exp_min <= 5.5 <= exp_max:
+            compat_score = 92
+        elif exp_max <= 3.0:
+            compat_score = 86
+        else:
+            compat_score = 88
+    else:
+        if not is_ai_role and not is_exp_eligible:
+            compat_score = 38
+        elif not is_ai_role:
+            compat_score = 45
+        else:
+            compat_score = 56
+
+    return {
+        "is_ai_role": is_ai_role,
+        "is_exp_eligible": is_exp_eligible,
+        "is_flagged": is_flagged,
+        "flag_reasons": flag_reasons,
+        "compatibility_score": compat_score
+    }
+
 class JobAutomationOrchestrator:
     """Coordinates LinkedIn parsing, Resume tailoring, Email drafting/sending, and Reply tracking."""
 
     def __init__(self):
-        # Dedicated Gemini clients per agent to prevent quota exhaustion
         self.linkedin_agent = LinkedInAgent(llm_client=GeminiClient(agent_role="linkedin"))
         self.resume_agent = ResumeAgent()
         self.email_agent = EmailAgent(
@@ -19,25 +81,57 @@ class JobAutomationOrchestrator:
         )
 
     def process_linkedin_url(self, url: str, raw_text: str = None, model: str = "gemini-3.5-flash") -> Dict[str, Any]:
-        """Step 1 & 2 & 3 & 4: Scrape, tailor resume, draft email with Gemini 3.5 (fallback to 3.5-lite & 2.5)."""
+        """Step 1 & 2 & 3 & 4: Scrape, evaluate eligibility, check duplicate, tailor resume, draft email."""
         # 1. Scrape & Research Job via LLM
         job_data = self.linkedin_agent.scrape_post(url, raw_text=raw_text, model=model)
         
+        # 2. Gatekeeper Filter
+        eligibility = evaluate_eligibility(
+            role_title=job_data.get("role_title", ""),
+            experience_text=job_data.get("experience", ""),
+            raw_jd=job_data.get("raw_text", ""),
+            exp_min=job_data.get("exp_min", 0.0),
+            exp_max=job_data.get("exp_max", 8.0)
+        )
+        job_data.update(eligibility)
+
+        # 3. Duplicate Application Shield
+        is_dup, dup_msg = check_duplicate_application(
+            contact_email=job_data.get("contact_email"),
+            company_name=job_data.get("company_name"),
+            role_title=job_data.get("role_title"),
+            linkedin_url=url
+        )
+        job_data["duplicate_detected"] = is_dup
+        job_data["duplicate_warning"] = dup_msg
+        if is_dup:
+            job_data["flag_reasons"].append(dup_msg)
+            job_data["is_flagged"] = True
+
+        job_data["fetch_date"] = datetime.now().strftime("%Y-%m-%d")
+
         # Save initial record to get job_id
         job_id = save_job(job_data)
         job_data["id"] = job_id
 
-        # 2. Tailor Resume (Skills + Summary 20% ATS adaptation & Scoring)
+        # 4. Tailor Resume (4-Pillar Realistic ATS Evaluation & Styling)
         role_title = job_data.get("role_title", "GenAI Engineer")
         extracted_skills = job_data.get("extracted_skills", [])
         raw_jd = job_data.get("raw_text", "")
-        resume_res = self.resume_agent.tailor_resume(job_id, role_title, extracted_skills, raw_jd=raw_jd)
+        resume_res = self.resume_agent.tailor_resume(
+            job_id,
+            role_title,
+            extracted_skills,
+            raw_jd=raw_jd,
+            exp_min=job_data.get("exp_min", 0.0),
+            exp_max=job_data.get("exp_max", 8.0)
+        )
 
-        # 3. Draft Email via LLM
+        # 5. Draft Email via LLM (Tailored tech skills in polite corporate tone)
         email_draft = self.email_agent.draft_email(job_data, model=model)
 
-        # 4. Update Database with generated artifacts
-        job_data["ats_score"] = resume_res.get("ats_score", 92)
+        # 6. Update Database with generated artifacts
+        job_data["ats_score"] = resume_res.get("ats_score", 85)
         job_data["custom_docx_path"] = resume_res["custom_docx_path"]
         job_data["custom_pdf_path"] = resume_res["custom_pdf_path"]
         job_data["custom_preview_path"] = resume_res.get("custom_preview_path")
@@ -75,7 +169,7 @@ class JobAutomationOrchestrator:
                 "email_body": body,
                 "gmail_message_id": res.get("message_id", ""),
                 "gmail_thread_id": res.get("thread_id", ""),
-                "sent_at": os.getenv("CURRENT_TIME") or None
+                "sent_at": datetime.now().isoformat()
             })
             return {"success": True, "message": f"Application email sent to {to_email} and filed in 'AI Carrier'!"}
         else:
@@ -152,7 +246,6 @@ class JobAutomationOrchestrator:
 
         now_str = datetime.utcnow().isoformat()
 
-        # Check against carrier folder responses
         for rep in carrier_replies:
             from_addr = (rep.get("from") or "").lower()
             rep_thread = rep.get("thread_id")
@@ -162,7 +255,6 @@ class JobAutomationOrchestrator:
                 contact = (job.get("contact_email") or "").lower()
                 job_thread = job.get("gmail_thread_id")
 
-                # Match by Gmail thread ID or recruiter email
                 is_match = False
                 if rep_thread and job_thread and rep_thread == job_thread:
                     is_match = True
@@ -181,7 +273,6 @@ class JobAutomationOrchestrator:
                         "snippet": snippet
                     })
 
-        # Fallback to direct check if no replies found from carrier scan
         if updated_count == 0:
             for job in jobs:
                 if job.get("status") in ["SENT", "PENDING_REVIEW"] and job.get("contact_email"):

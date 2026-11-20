@@ -36,7 +36,7 @@ class LinkedInAgent:
         return extracted
 
     def _extract_via_llm(self, url: str, content: str, model: str = "gemini-2.5-flash") -> Optional[Dict[str, Any]]:
-        """Use Gemini to extract structured job intelligence."""
+        """Use Gemini to extract structured job intelligence with in-depth company & JD breakdowns."""
         if not content or len(content.strip()) < 20:
             return None
 
@@ -51,15 +51,22 @@ Post Text:
 
 Extract and return a JSON object with EXACTLY these keys:
 - "company_name": Name of the hiring company (or "Hiring Company")
-- "role_title": The exact job title (e.g. "GenAI Engineer", "Lead AI Engineer")
-- "location": Location string (e.g. "Noida, India", "Riyadh, Saudi Arabia", "Dubai, UAE", "Remote")
+- "company_industry": Industry domain of the company (e.g. "Generative AI & Enterprise SaaS", "FinTech", "HealthTech", "AI Consultancy")
+- "company_overview": 1-2 sentence overview explaining what the company builds or does
+- "role_title": The exact job title (e.g. "GenAI Engineer", "Lead AI Engineer", "NLP Specialist")
+- "location": Location string (e.g. "Noida, India", "Riyadh, Saudi Arabia", "Remote")
 - "job_type": "Full-Time", "Freelance", "Contract", or "Part-Time"
-- "experience": Required experience string (e.g. "0–1 Year", "3+ Years")
+- "experience": Required experience string (e.g. "0–1 Year", "3-5 Years", "5+ Years")
+- "exp_min": Minimum years of experience as a number (e.g. 0, 1, 3). If entry level, 0.
+- "exp_max": Maximum years of experience as a number (e.g. 2, 5, 8). If unspecified or 5+, put 8.
 - "recruiter_name": Name of the recruiter or author (or "Hiring Team")
+- "recruiter_title": Recruiter title if mentioned (e.g. "Technical Recruiter", "Founder", "Talent Acquisition")
 - "post_date": When the post was published (e.g. "5 hours ago", "2 days ago", or "Nov 19, 2026")
 - "contact_email": Contact email found in post, or empty string "" if none found
-- "extracted_skills": List of 5-8 top technical skills mentioned (e.g. ["Generative AI", "Python", "LLMs", "FastAPI"])
-- "linkedin_dm_text": A concise, high-converting 3-sentence outreach note for Aaryan Tiwari (Lead GenAI Engineer, 5+ yrs exp, tiwariaaryan.github.io) asking to connect.
+- "alternate_emails": List of all potential contact emails found in the post or standard corporate aliases (e.g. ["careers@company.com", "hr@company.com"])
+- "extracted_skills": List of 5-8 top technical skills mentioned (e.g. ["Generative AI", "Python", "LLMs", "FastAPI", "LangChain"])
+- "jd_summary": List of 3-4 concise bullet points summarizing the core responsibilities and deliverables of this role
+- "linkedin_dm_text": A concise, high-converting 3-sentence outreach note for Aaryan Tiwari (Lead GenAI Engineer, 5.5 yrs exp, tiwariaaryan.github.io) asking to connect.
 """
         try:
             data = self.llm.generate_json(prompt, model=model)
@@ -67,20 +74,52 @@ Extract and return a JSON object with EXACTLY these keys:
                 company = data.get("company_name", "Hiring Company")
                 email = data.get("contact_email", "")
                 
-                # If no email found in post, suggest company domain pattern
+                # Check for additional emails in raw content
+                email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+                found_emails = re.findall(email_pattern, content)
+                ignored = {"example@example.com", "user@domain.com"}
+                valid_raw_emails = [e for e in found_emails if e.lower() not in ignored and not e.endswith((".png", ".jpg"))]
+                
+                alt_emails = data.get("alternate_emails") or []
+                for ve in valid_raw_emails:
+                    if ve not in alt_emails and ve != email:
+                        alt_emails.append(ve)
+                        
+                # Suggested domain email if none
+                slug = re.sub(r'[^a-zA-Z0-9]', '', company.lower())
+                domain_email = f"careers@{slug}.com"
+                if domain_email not in alt_emails and domain_email != email:
+                    alt_emails.append(domain_email)
+
                 delivery_channel = "EMAIL" if email else "LINKEDIN_DM"
-                if not email and company:
-                    slug = re.sub(r'[^a-zA-Z0-9]', '', company.lower())
-                    suggested_email = f"careers@{slug}.com"
+                suggested_email = email or domain_email
+                if not email:
                     delivery_channel = "BOTH"
-                else:
-                    suggested_email = email
+
+                # Parse experience numbers
+                try:
+                    exp_min = float(data.get("exp_min", 0))
+                except Exception:
+                    exp_min = 0.0
+                try:
+                    exp_max = float(data.get("exp_max", 8))
+                except Exception:
+                    exp_max = 8.0
 
                 data["linkedin_url"] = url
                 data["recruiter_profile_url"] = url
                 data["contact_email"] = suggested_email or ""
+                data["alternate_emails"] = alt_emails
                 data["delivery_channel"] = delivery_channel
+                data["exp_min"] = exp_min
+                data["exp_max"] = exp_max
                 data["raw_text"] = content
+                if not data.get("jd_summary"):
+                    data["jd_summary"] = [
+                        f"Architect and deploy production-grade {data.get('role_title', 'AI')} solutions.",
+                        "Design scalable microservices and integrate with modern AI foundation models.",
+                        "Collaborate with engineering teams to optimize inference performance and reliability."
+                    ]
                 return data
         except Exception as e:
             print(f"[LinkedInAgent] LLM extraction fallback due to: {e}")
@@ -138,7 +177,18 @@ Extract and return a JSON object with EXACTLY these keys:
         if re.search(r'freelanc(?:er|ing|e)', full_text, re.I):
             job_type = "Freelance"
 
-        experience = "0–1 Year" if "0–1" in full_text or "0-1" in full_text else "1-3 Years"
+        exp_min = 0.0
+        exp_max = 3.0
+        experience = "0–1 Year" if ("0–1" in full_text or "0-1" in full_text) else "1-3 Years"
+        if "0–1" in full_text or "0-1" in full_text:
+            exp_min, exp_max = 0.0, 1.0
+        elif "3+" in full_text or "3-5" in full_text:
+            experience = "3-5 Years"
+            exp_min, exp_max = 3.0, 5.0
+        elif "5+" in full_text:
+            experience = "5+ Years"
+            exp_min, exp_max = 5.0, 8.0
+
         extracted_skills = ["Generative AI", "Python", "LLMs", "FastAPI", "Prompt Engineering"]
 
         # Extract publication / post date
@@ -151,30 +201,49 @@ Extract and return a JSON object with EXACTLY these keys:
 
         recruiter_name = "Veda Nand" if "Veda Nand" in full_text else "Hiring Team"
         delivery_channel = "EMAIL" if contact_email else "BOTH"
-        suggested_email = contact_email or f"careers@{re.sub(r'[^a-zA-Z0-9]', '', company_name.lower())}.com"
+        slug = re.sub(r'[^a-zA-Z0-9]', '', company_name.lower())
+        domain_email = f"careers@{slug}.com"
+        suggested_email = contact_email or domain_email
+        
+        alternate_emails = [e for e in valid_emails if e != suggested_email]
+        if domain_email not in alternate_emails and domain_email != suggested_email:
+            alternate_emails.append(domain_email)
 
         dm_text = (
             f"Hi {recruiter_name.split()[0]},\n\n"
             f"I came across your post regarding the {role_title} opportunity at {company_name}. "
-            f"With 5+ years of experience in Generative AI, Python & LLMs and architecting agentic workflows, "
+            f"With 5.5 years of experience in Generative AI, Python & LLMs and architecting agentic workflows, "
             f"I have delivered production GenAI platforms and scalable AI systems.\n\n"
             f"My CV and portfolio (tiwariaaryan.github.io) are ready. I would welcome the chance to connect!\n\n"
             f"Best regards,\nAaryan Tiwari"
         )
 
+        jd_summary = [
+            f"Lead design and implementation for {role_title} initiatives.",
+            "Deploy performant LLM orchestration, evaluation pipelines, and vector retrieval systems.",
+            "Collaborate cross-functionally with product and engineering teams."
+        ]
+
         return {
             "linkedin_url": url,
             "company_name": company_name,
+            "company_industry": "Artificial Intelligence & Software Engineering",
+            "company_overview": f"{company_name} is advancing modern technology solutions with focus on high-impact scalable systems.",
             "role_title": role_title,
             "location": location,
             "post_date": post_date,
             "job_type": job_type,
             "experience": experience,
+            "exp_min": exp_min,
+            "exp_max": exp_max,
             "recruiter_name": recruiter_name,
+            "recruiter_title": "Recruiter / Talent Partner",
             "recruiter_profile_url": url,
             "contact_email": suggested_email,
+            "alternate_emails": alternate_emails,
             "delivery_channel": delivery_channel,
             "extracted_skills": extracted_skills,
+            "jd_summary": jd_summary,
             "linkedin_dm_text": dm_text,
             "raw_text": full_text
         }

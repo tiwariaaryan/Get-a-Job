@@ -138,7 +138,7 @@ class EmailAgent:
         company = job_data.get("company_name", "the team")
         recruiter = job_data.get("recruiter_name", "Hiring Team")
         skills = job_data.get("extracted_skills", [])
-        top_skills = ", ".join(skills[:3]) if skills else "Python, LLMs & Multi-Agent Systems"
+        top_skills = ", ".join(skills[:4]) if skills else "Generative AI, Python, LLMs & Multi-Agent Systems"
 
         prompt = (
             "Write a natural, polite, and highly professional job application email from Aaryan Tiwari to " + str(recruiter) + " at " + str(company) + " for the position of " + str(role) + ".\n\n"
@@ -148,7 +148,7 @@ class EmailAgent:
             "3. Tone: Polite, sincere, official, and professional corporate tone.\n"
             "4. DO NOT use words like \x27tailored resume\x27 or \x27adapted keywords\x27. Simply say \x27I have attached my resume for your consideration\x27.\n"
             "5. Paragraph 1: Express strong interest and genuine willingness to join " + str(company) + " as a " + str(role) + ".\n"
-            "6. Paragraph 2: Highlight core expertise in " + str(top_skills) + " and building reliable AI solutions.\n"
+            "6. Paragraph 2: Highlight my core technical expertise and hands-on skills in " + str(top_skills) + " matching your job description.\n"
             "7. Paragraph 3: Politely ask to look into the attached resume and express readiness to discuss how to contribute.\n"
             "8. Sign-off:\n"
             "Sincerely,\n"
@@ -176,8 +176,8 @@ class EmailAgent:
         fallback_body = (
             f"Dear {first_name},\n\n"
             f"I am writing to express my strong interest in joining {company} as a {role}. "
-            f"With deep GenAI experience, I am eager to contribute to your engineering team.\n\n"
-            f"My core expertise includes {top_skills}, scalable microservices, and enterprise RAG pipelines. "
+            f"With over 5 years of specialized experience in AI engineering, I am eager to contribute.\n\n"
+            f"My core expertise aligns directly with your requirements in {top_skills}. "
             f"I focus on delivering reliable AI solutions that drive real business impact.\n\n"
             f"I have attached my resume for your consideration. "
             f"I would appreciate the opportunity to discuss how my skills and background can support {company}'s upcoming goals.\n\n"

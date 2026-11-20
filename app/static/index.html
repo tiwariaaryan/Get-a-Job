@@ -144,37 +144,94 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                <!-- Left Column: Job & ATS Keyword Analysis -->
-                <div class="lg:col-span-4 space-y-4">
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3.5">
-                        <div class="border-b border-slate-100 pb-3">
-                            <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Position Details</span>
+                <!-- Left Column: Rich Position Details & Gatekeeper Intelligence -->
+                <div class="lg:col-span-4 space-y-3.5">
+                    <!-- Duplicate Alert Banner -->
+                    <div id="duplicateBanner" class="hidden p-3 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs space-y-1 shadow-xs">
+                        <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                            <span>Duplicate Application Warning</span>
+                        </div>
+                        <p id="duplicateWarningText" class="text-[11px] leading-relaxed text-amber-800"></p>
+                    </div>
+
+                    <!-- Gatekeeper Compatibility & Eligibility Card -->
+                    <div id="eligibilityCard" class="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2 text-xs shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span id="eligibilityBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">✅ Eligible AI Role</span>
+                                <span id="expMatchBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">0–8y Exp Match</span>
+                            </div>
+                            <div class="text-right">
+                                <span id="compatScoreText" class="text-xs font-black font-mono text-emerald-700">92% Match</span>
+                            </div>
+                        </div>
+                        <div id="flagReasonsContainer" class="hidden space-y-1 pt-1.5 border-t border-amber-200/80">
+                            <!-- Bullet points of reasons if flagged -->
+                        </div>
+                    </div>
+
+                    <!-- Position & Company Card -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                        <div class="border-b border-slate-100 pb-2.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Position Details</span>
+                                <span id="jobIndustry" class="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Artificial Intelligence</span>
+                            </div>
                             <h3 id="jobRole" class="text-base font-bold text-slate-900 mt-1">Lead GenAI Engineer</h3>
-                            <p id="jobCompany" class="text-sm font-medium text-indigo-600">Algomindz Solutions</p>
+                            <p id="jobCompany" class="text-xs font-semibold text-indigo-600">Algomindz Solutions</p>
+                            <p id="jobCompanyOverview" class="text-[11px] text-slate-500 mt-1 leading-relaxed">Advancing scalable enterprise AI & LLM solutions.</p>
                         </div>
 
+                        <!-- Location, Job Type & Experience Grid -->
                         <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="p-2.5 bg-slate-50 rounded-lg">
-                                <span class="text-slate-400 block mb-0.5">Location</span>
-                                <span id="jobLocation" class="font-semibold text-slate-800">Noida, India</span>
+                            <div class="p-2 bg-slate-50 rounded-lg">
+                                <span class="text-slate-400 text-[10px] block mb-0.5">Location</span>
+                                <span id="jobLocation" class="font-semibold text-slate-800 text-[11px]">Noida, India</span>
                             </div>
-                            <div class="p-2.5 bg-slate-50 rounded-lg">
-                                <span class="text-slate-400 block mb-0.5">Job Type</span>
-                                <span id="jobType" class="font-semibold text-slate-800">Full-Time / Freelance</span>
+                            <div class="p-2 bg-slate-50 rounded-lg">
+                                <span class="text-slate-400 text-[10px] block mb-0.5">Job Type</span>
+                                <span id="jobType" class="font-semibold text-slate-800 text-[11px]">Full-Time</span>
+                            </div>
+                            <div class="col-span-2 p-2 bg-slate-50 rounded-lg">
+                                <span class="text-slate-400 text-[10px] block mb-0.5">Experience Required (0–8y Policy)</span>
+                                <span id="jobExperience" class="font-semibold text-indigo-800 text-[11px]">0–1 Year (Candidate: 5.5 yrs)</span>
                             </div>
                         </div>
 
+                        <!-- Recruiter / Author Intel -->
                         <div>
-                            <span class="text-xs text-slate-400 block mb-1">Recruiter / Author</span>
-                            <div class="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg">
-                                <span id="jobRecruiter" class="font-medium text-slate-800">Veda Nand</span>
-                                <a id="jobRecruiterLink" href="#" target="_blank" class="text-indigo-600 hover:underline">Profile <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">Recruiter & Sender Intel</span>
+                            <div class="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                <div>
+                                    <span id="jobRecruiter" class="font-bold text-slate-800 block text-xs">Veda Nand</span>
+                                    <span id="jobRecruiterTitle" class="text-[10px] text-slate-500">Talent Partner / Recruiter</span>
+                                </div>
+                                <a id="jobRecruiterLink" href="#" target="_blank" class="text-indigo-600 hover:underline text-[11px] font-semibold flex items-center gap-1">
+                                    <span>Profile</span> <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                </a>
                             </div>
+                        </div>
+
+                        <!-- Key Skills Required Badges -->
+                        <div>
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1.5">Key Skills Needed</span>
+                            <div id="jobSkillsList" class="flex flex-wrap gap-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- JD Structured Deliverables / Responsibilities -->
+                        <div>
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1.5">Core JD Deliverables</span>
+                            <ul id="jdSummaryList" class="space-y-1 text-xs">
+                                <!-- Populated dynamically -->
+                            </ul>
                         </div>
 
                         <!-- ATS Injected Keywords Diff -->
-                        <div>
-                            <span class="text-xs uppercase font-bold tracking-wider text-slate-400 block mb-1.5">ATS Injected Keywords (20%)</span>
+                        <div class="pt-1 border-t border-slate-100">
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1.5">ATS Injected Keywords (20%)</span>
                             <div id="keywordsDiffList" class="space-y-1.5 text-xs">
                                 <!-- Populated dynamically -->
                             </div>
@@ -243,7 +300,12 @@
                     <div id="emailTabContent" class="flex-1 flex flex-col space-y-2.5 overflow-y-auto pr-1 custom-scrollbar text-xs">
                         <div>
                             <label class="block text-slate-500 font-medium mb-1">To (HR/Recruiter Email):</label>
-                            <input id="emailTo" type="email" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none" />
+                            <input id="emailTo" type="email" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-mono" />
+                            <!-- Alternate Recruiter Contacts -->
+                            <div id="altEmailsRow" class="hidden flex items-center gap-1 flex-wrap pt-1.5">
+                                <span class="text-[10px] text-slate-400 font-medium">Alternate Contacts:</span>
+                                <div id="altEmailsList" class="flex flex-wrap gap-1"></div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-slate-500 font-medium mb-1">Subject:</label>
@@ -312,16 +374,16 @@
             </div>
         </section>
 
-        <!-- Tracking Section: All Past Applications & Responses -->
+        <!-- Tracking Section: Date-Wise Application History & Responses -->
         <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-base font-bold text-slate-900">Application History & Responses</h2>
-                    <p class="text-xs text-slate-500">Track sent applications, delivery channels, and incoming HR replies</p>
+                    <p class="text-xs text-slate-500">Date-wise organized applications, gatekeeper verification, and live HR replies</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="flex items-center gap-1.5 text-xs bg-slate-100 px-2.5 py-1 rounded-lg">
-                        <span class="text-slate-500">Total:</span>
+                        <span class="text-slate-500">Total Applications:</span>
                         <span id="totalAppsCount" class="font-bold text-slate-800">0</span>
                     </div>
                     <button onclick="clearAllHistory()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium px-2.5 py-1.5 rounded-lg border border-rose-200 transition flex items-center gap-1.5" title="Clear all application history">
@@ -330,26 +392,11 @@
                 </div>
             </div>
 
-            <!-- Applications Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead>
-                        <tr class="border-b border-slate-200 text-slate-400 uppercase tracking-wider font-semibold">
-                            <th class="py-3 px-3">Company & Role</th>
-                            <th class="py-3 px-3">Timeline (Posted & Drafted)</th>
-                            <th class="py-3 px-3">Location & Type</th>
-                            <th class="py-3 px-3">Contact</th>
-                            <th class="py-3 px-3">Status</th>
-                            <th class="py-3 px-3">HR Response Snippet</th>
-                            <th class="py-3 px-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="jobsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                        <tr>
-                            <td colspan="7" class="text-center py-8 text-slate-400">No applications processed yet. Paste a link above to get started!</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Date-wise Accordion Cards Container -->
+            <div id="historyDateCardsContainer" class="space-y-3">
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin text-indigo-500 mr-1.5"></i> Loading application history...
+                </div>
             </div>
         </section>
 
@@ -682,18 +729,109 @@
             const reviewSec = document.getElementById("reviewSection");
             reviewSec.classList.remove("hidden");
 
-            // Fill job details
-            document.getElementById("jobRole").textContent = job.role_title || "GenAI Role";
-            document.getElementById("jobCompany").textContent = job.company_name || "Company";
+            // 1. Duplicate Warning Banner
+            const dupBanner = document.getElementById("duplicateBanner");
+            if (job.duplicate_detected) {
+                dupBanner.classList.remove("hidden");
+                document.getElementById("duplicateWarningText").textContent = job.duplicate_warning || "An application was already sent/scheduled for this role.";
+            } else {
+                dupBanner.classList.add("hidden");
+            }
+
+            // 2. Eligibility & Gatekeeper Card
+            const eligCard = document.getElementById("eligibilityCard");
+            const eligBadge = document.getElementById("eligibilityBadge");
+            const expBadge = document.getElementById("expMatchBadge");
+            const compatText = document.getElementById("compatScoreText");
+            const flagReasonsDiv = document.getElementById("flagReasonsContainer");
+
+            const compat = job.compatibility_score || (job.is_flagged ? 48 : 88);
+            compatText.textContent = `${compat}% Compatible`;
+
+            if (job.is_flagged) {
+                eligCard.className = "p-3.5 bg-amber-50/80 border border-amber-300 rounded-2xl space-y-2 text-xs shadow-xs";
+                compatText.className = "text-xs font-black font-mono text-amber-800";
+                eligBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900";
+                eligBadge.textContent = "⚠️ Flagged by Gatekeeper";
+
+                if (job.is_exp_eligible === false) {
+                    expBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900";
+                    expBadge.textContent = ">8y Exp Required";
+                } else if (job.is_ai_role === false) {
+                    expBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900";
+                    expBadge.textContent = "Non-AI Role";
+                } else {
+                    expBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900";
+                    expBadge.textContent = "Duplicate Alert";
+                }
+
+                flagReasonsDiv.classList.remove("hidden");
+                flagReasonsDiv.innerHTML = "";
+                const reasons = Array.isArray(job.flag_reasons) ? job.flag_reasons : [];
+                reasons.forEach(r => {
+                    const li = document.createElement("div");
+                    li.className = "text-[11px] text-amber-900 flex items-start gap-1 font-medium";
+                    li.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-600 mt-0.5 text-[10px] shrink-0"></i> <span>${r}</span>`;
+                    flagReasonsDiv.appendChild(li);
+                });
+            } else {
+                eligCard.className = "p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2 text-xs shadow-xs";
+                compatText.className = "text-xs font-black font-mono text-emerald-700";
+                eligBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800";
+                eligBadge.textContent = "✅ Eligible AI Role";
+                expBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800";
+                expBadge.textContent = "0–8y Exp (Candidate: 5.5y)";
+                flagReasonsDiv.classList.add("hidden");
+            }
+
+            // 3. Position Details & Company Info
+            document.getElementById("jobRole").textContent = job.role_title || "GenAI Engineer";
+            document.getElementById("jobCompany").textContent = job.company_name || "Hiring Company";
+            document.getElementById("jobIndustry").textContent = job.company_industry || "Artificial Intelligence & Technology";
+            document.getElementById("jobCompanyOverview").textContent = job.company_overview || "Advancing scalable generative AI solutions and modern LLM architecture.";
             document.getElementById("jobLocation").textContent = job.location || "Flexible / Remote";
-            document.getElementById("jobType").textContent = `${job.job_type || 'Full-Time'} (${job.experience || 'Flexible'})`;
+            document.getElementById("jobType").textContent = job.job_type || "Full-Time";
+            document.getElementById("jobExperience").textContent = `${job.experience || 'Flexible'} (Candidate has 5.5 yrs)`;
+
+            // 4. Recruiter / Author Intel
             document.getElementById("jobRecruiter").textContent = job.recruiter_name || "Hiring Lead";
+            document.getElementById("jobRecruiterTitle").textContent = job.recruiter_title || "Talent Partner / Recruiter";
             document.getElementById("jobRecruiterLink").href = job.recruiter_profile_url || job.linkedin_url;
 
-            // Channel badge
+            // 5. Skills Badges
+            const skillsList = document.getElementById("jobSkillsList");
+            skillsList.innerHTML = "";
+            const skills = Array.isArray(job.extracted_skills) ? job.extracted_skills : [];
+            if (skills.length === 0) {
+                skillsList.innerHTML = "<span class='text-slate-400 italic text-[11px]'>Generative AI, Python, LLMs, FastAPI</span>";
+            } else {
+                skills.forEach(sk => {
+                    const pill = document.createElement("span");
+                    pill.className = "px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold text-[10px]";
+                    pill.textContent = sk;
+                    skillsList.appendChild(pill);
+                });
+            }
+
+            // 6. JD Deliverables / Responsibilities Summary
+            const jdList = document.getElementById("jdSummaryList");
+            jdList.innerHTML = "";
+            const jdBullets = Array.isArray(job.jd_summary) && job.jd_summary.length > 0 ? job.jd_summary : [
+                `Lead architecture and deployment for ${job.role_title || 'AI'} initiatives.`,
+                "Develop scalable backend services and optimize foundation model pipelines.",
+                "Ensure robust integration, performance benchmarking, and production readiness."
+            ];
+            jdBullets.forEach(b => {
+                const li = document.createElement("li");
+                li.className = "flex items-start gap-1.5 text-slate-700 text-[11px] leading-relaxed";
+                li.innerHTML = `<i class="fa-solid fa-angle-right text-indigo-500 mt-1 text-[9px] shrink-0"></i> <span>${b}</span>`;
+                jdList.appendChild(li);
+            });
+
+            // 7. Channel Badge
             const badge = document.getElementById("jobChannelBadge");
             if (job.delivery_channel === "EMAIL") {
-                badge.textContent = "Email Found";
+                badge.textContent = "Email Delivery";
                 badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800";
             } else if (job.delivery_channel === "BOTH") {
                 badge.textContent = "Email & DM Available";
@@ -703,35 +841,39 @@
                 badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800";
             }
 
-            // ATS Match Score Display
-            const score = job.ats_score || 94;
+            // 8. ATS Match Score Display (Realistic 4-pillar score)
+            const score = job.ats_score || 85;
             document.getElementById("atsScoreValue").textContent = `${score}%`;
             const atsBadge = document.getElementById("atsBadge");
             const atsSub = document.getElementById("atsSubtext");
-            if (score >= 90) {
+            if (score >= 88) {
                 atsBadge.textContent = "Strong Fit";
                 atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900";
                 atsSub.textContent = `High ATS compatibility for ${job.role_title || 'this position'}`;
-            } else if (score >= 80) {
+            } else if (score >= 75) {
                 atsBadge.textContent = "Good Fit";
                 atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-200 text-blue-900";
-                atsSub.textContent = `Target keywords successfully adapted`;
-            } else {
+                atsSub.textContent = `Target keywords aligned with candidate profile`;
+            } else if (score >= 60) {
                 atsBadge.textContent = "Moderate Fit";
                 atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900";
-                atsSub.textContent = `Baseline requirements met`;
+                atsSub.textContent = `Partial overlap with requirements`;
+            } else {
+                atsBadge.textContent = "Low Fit";
+                atsBadge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900";
+                atsSub.textContent = `Significant experience or role gap`;
             }
 
-            // Keyword diffs
+            // 9. Keyword diffs
             const diffsList = document.getElementById("keywordsDiffList");
             diffsList.innerHTML = "";
             const diffs = job.modified_keywords || [];
             if (diffs.length === 0) {
-                diffsList.innerHTML = "<div class='text-slate-400 italic'>Standard ATS alignment applied.</div>";
+                diffsList.innerHTML = "<div class='text-slate-400 italic text-[11px]'>Standard ATS alignment applied.</div>";
             } else {
                 diffs.forEach(d => {
                     const el = document.createElement("div");
-                    el.className = "p-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between";
+                    el.className = "p-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between text-[11px]";
                     el.innerHTML = `
                         <span class="text-slate-500">${d.section}:</span>
                         <span class="font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+ ${d.new}</span>
@@ -740,7 +882,7 @@
                 });
             }
 
-            // High-resolution image preview & download links
+            // 10. Resume preview & downloads
             const previewImg = document.getElementById("resumePreviewImg");
             previewImg.src = `/api/jobs/${job.id}/preview?t=${Date.now()}`;
             document.getElementById("downloadPdfBtn").href = `/api/jobs/${job.id}/pdf`;
@@ -748,11 +890,33 @@
             const attLink = document.getElementById("emailAttachmentPreviewLink");
             if (attLink) attLink.href = `/api/jobs/${job.id}/pdf`;
 
-            // Outreach Inputs
+            // 11. Outreach Inputs & Alternate Recruiter Contacts
             document.getElementById("emailTo").value = job.contact_email || "";
             document.getElementById("emailSubject").value = job.email_subject || "";
             document.getElementById("emailBody").value = job.email_body || "";
             document.getElementById("dmBody").value = job.linkedin_dm_text || "";
+
+            const altRow = document.getElementById("altEmailsRow");
+            const altList = document.getElementById("altEmailsList");
+            altList.innerHTML = "";
+            const altEmails = Array.isArray(job.alternate_emails) ? job.alternate_emails : [];
+            if (altEmails.length > 0) {
+                altRow.classList.remove("hidden");
+                altEmails.forEach(em => {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded text-[10px] font-mono transition";
+                    btn.textContent = em;
+                    btn.title = `Click to set recipient to ${em}`;
+                    btn.onclick = () => {
+                        document.getElementById("emailTo").value = em;
+                        showToast(`Recipient set to ${em}`);
+                    };
+                    altList.appendChild(btn);
+                });
+            } else {
+                altRow.classList.add("hidden");
+            }
 
             // Switch to Email tab by default if email exists, else DM tab
             if (job.contact_email) {
@@ -761,7 +925,6 @@
                 switchOutreachTab("dm");
             }
 
-            // Scroll to review
             reviewSec.scrollIntoView({ behavior: "smooth" });
         }
 
@@ -1095,113 +1258,231 @@
 
         let loadedJobs = {};
 
+        function toggleDateCard(contentId, chevronId) {
+            const el = document.getElementById(contentId);
+            const chev = document.getElementById(chevronId);
+            if (!el) return;
+            if (el.classList.contains("hidden")) {
+                el.classList.remove("hidden");
+                if (chev) {
+                    chev.classList.remove("fa-chevron-down");
+                    chev.classList.add("fa-chevron-up");
+                }
+            } else {
+                el.classList.add("hidden");
+                if (chev) {
+                    chev.classList.remove("fa-chevron-up");
+                    chev.classList.add("fa-chevron-down");
+                }
+            }
+        }
+
         async function loadJobs() {
             try {
                 const resp = await fetch("/api/jobs");
                 const data = await resp.json();
-                const tbody = document.getElementById("jobsTableBody");
+                const container = document.getElementById("historyDateCardsContainer");
                 const countBadge = document.getElementById("totalAppsCount");
 
                 countBadge.textContent = data.jobs.length;
 
                 if (data.jobs.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='7' class='text-center py-8 text-slate-400'>No applications processed yet. Paste a link above to get started!</td></tr>";
+                    container.innerHTML = "<div class='text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs'><i class='fa-regular fa-folder-open text-2xl mb-2 text-slate-300 block'></i>No applications processed yet. Paste a link above to get started!</div>";
                     return;
                 }
 
-                tbody.innerHTML = "";
+                container.innerHTML = "";
                 loadedJobs = {};
+
+                // Group jobs by date (fetch_date or created_at date YYYY-MM-DD)
+                const groups = {};
                 data.jobs.forEach(job => {
                     loadedJobs[job.id] = job;
-                    const tr = document.createElement("tr");
-                    tr.className = "hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer";
-                    tr.onclick = (e) => {
-                        if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.closest("button") && !e.target.closest("a")) {
-                            displayJobReview(job);
-                        }
-                    };
+                    let dateKey = job.fetch_date;
+                    if (!dateKey && job.created_at) {
+                        dateKey = job.created_at.substring(0, 10);
+                    }
+                    if (!dateKey) {
+                        dateKey = new Date().toISOString().substring(0, 10);
+                    }
+                    if (!groups[dateKey]) {
+                        groups[dateKey] = [];
+                    }
+                    groups[dateKey].push(job);
+                });
 
-                    let statusLabel = "Saved Draft (Ready to Apply)";
-                    let statusClass = "bg-amber-100 text-amber-800 font-semibold";
-                    if (job.status === "SENT") {
-                        statusLabel = "Email Sent";
-                        statusClass = "bg-blue-100 text-blue-800 font-semibold";
-                    } else if (job.status === "SCHEDULED") {
-                        let schedTime = "Scheduled";
-                        if (job.scheduled_at) {
-                            try {
-                                const sd = new Date(job.scheduled_at);
-                                const dStr = sd.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                                const tStr = sd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-                                schedTime = `${dStr}, ${tStr} (24h)`;
-                            } catch(e) {
-                                schedTime = job.scheduled_at.substring(0, 16);
-                            }
+                // Sort dates descending
+                const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+                const todayStr = new Date().toISOString().substring(0, 10);
+                const yestDate = new Date();
+                yestDate.setDate(yestDate.getDate() - 1);
+                const yestStr = yestDate.toISOString().substring(0, 10);
+
+                sortedDates.forEach((dateStr, idx) => {
+                    const jobsForDate = groups[dateStr];
+                    
+                    let displayDate = dateStr;
+                    try {
+                        const [y, m, d] = dateStr.split("-").map(Number);
+                        const dt = new Date(y, m - 1, d);
+                        const fmt = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        if (dateStr === todayStr) {
+                            displayDate = `Today — ${fmt}`;
+                        } else if (dateStr === yestStr) {
+                            displayDate = `Yesterday — ${fmt}`;
+                        } else {
+                            displayDate = fmt;
                         }
-                        statusLabel = `⏰ Scheduled (${schedTime})`;
-                        statusClass = "bg-purple-100 text-purple-800 font-bold";
-                    } else if (job.status === "DM_SENT") {
-                        statusLabel = "LinkedIn DM Sent";
-                        statusClass = "bg-indigo-100 text-indigo-800 font-semibold";
-                    } else if (job.status === "REPLIED") {
-                        statusLabel = "HR Replied";
-                        statusClass = "bg-emerald-100 text-emerald-800 font-bold animate-pulse";
+                    } catch(e) {
+                        displayDate = dateStr;
                     }
 
-                    let draftedDate = "Recently";
-                    if (job.created_at) {
-                        try {
-                            const d = new Date(job.created_at);
-                            draftedDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-                        } catch(e) {
-                            draftedDate = job.created_at.substring(0, 16);
-                        }
-                    }
+                    const totalCount = jobsForDate.length;
+                    const sentCount = jobsForDate.filter(j => j.status === 'SENT').length;
+                    const schedCount = jobsForDate.filter(j => j.status === 'SCHEDULED').length;
+                    const draftCount = jobsForDate.filter(j => j.status === 'PENDING_REVIEW').length;
+                    const avgAts = Math.round(jobsForDate.reduce((acc, j) => acc + (j.ats_score || 85), 0) / totalCount);
 
-                    tr.innerHTML = `
-                        <td class="py-3 px-3">
-                            <span class="font-bold text-slate-900 block">${job.company_name || 'N/A'}</span>
-                            <span class="text-slate-500">${job.role_title || 'N/A'}</span>
-                            <div class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
-                                <i class="fa-solid fa-paperclip text-emerald-600"></i>
-                                <span>Aaryan Gen Ai Resume.pdf</span>
+                    const card = document.createElement("div");
+                    card.className = "bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs transition";
+
+                    const isExpanded = idx === 0;
+                    const contentId = `dateGroupContent_${dateStr.replace(/-/g, '_')}`;
+                    const chevronId = `chevron_${dateStr.replace(/-/g, '_')}`;
+
+                    card.innerHTML = `
+                        <!-- Accordion Header -->
+                        <div onclick="toggleDateCard('${contentId}', '${chevronId}')" class="p-3.5 bg-gradient-to-r from-slate-50 via-white to-slate-50/50 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition border-b border-slate-100 select-none">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs border border-indigo-100">
+                                    <i class="fa-regular fa-calendar-days"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900 text-xs">${displayDate}</h3>
+                                    <span class="text-[10px] text-slate-500">${totalCount} job${totalCount > 1 ? 's' : ''} processed on this date</span>
+                                </div>
                             </div>
-                        </td>
-                        <td class="py-3 px-3 whitespace-nowrap">
-                            <div class="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
-                                <i class="fa-regular fa-calendar-days text-indigo-500"></i>
-                                <span>${job.post_date || 'Recently'}</span>
+
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">Total: ${totalCount}</span>
+                                ${sentCount > 0 ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-paper-plane text-[9px]"></i> ${sentCount} Sent</span>` : ''}
+                                ${schedCount > 0 ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-clock text-[9px]"></i> ${schedCount} Sched</span>` : ''}
+                                ${draftCount > 0 ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">${draftCount} Drafts</span>` : ''}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">Avg ATS: ${avgAts}%</span>
+                                <i id="${chevronId}" class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-slate-400 text-xs ml-2 transition-transform"></i>
                             </div>
-                            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                <i class="fa-regular fa-clock text-slate-400"></i>
-                                <span>Drafted: ${draftedDate}</span>
-                            </div>
-                        </td>
-                        <td class="py-3 px-3">
-                            <span class="block">${job.location || 'N/A'}</span>
-                            <span class="text-[10px] text-indigo-600 font-medium">${job.job_type || ''}</span>
-                        </td>
-                        <td class="py-3 px-3 font-mono text-[11px]">
-                            ${job.contact_email || '<span class="text-slate-400 italic">LinkedIn DM</span>'}
-                        </td>
-                        <td class="py-3 px-3">
-                            <span class="px-2 py-0.5 rounded-full text-[11px] ${statusClass}">${statusLabel}</span>
-                        </td>
-                        <td class="py-3 px-3 max-w-xs truncate text-slate-600" title="${job.reply_snippet || ''}">
-                            ${job.reply_snippet || '<span class="text-slate-300">-</span>'}
-                        </td>
-                        <td class="py-3 px-3 text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <button onclick="event.stopPropagation(); displayJobReview(loadedJobs[${job.id}])" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg font-medium text-xs transition flex items-center gap-1">
-                                    <i class="fa-regular fa-folder-open"></i> Review & Send
-                                </button>
-                                <button onclick="deleteJob(${job.id}, event)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1.5 rounded-lg font-medium text-xs border border-rose-200 transition" title="Delete application">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
-                        </td>
+                        </div>
+
+                        <!-- Accordion Body -->
+                        <div id="${contentId}" class="${isExpanded ? 'block' : 'hidden'} overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-100 bg-slate-50/60 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+                                        <th class="py-2.5 px-3">Company & Role</th>
+                                        <th class="py-2.5 px-3">Gatekeeper & ATS</th>
+                                        <th class="py-2.5 px-3">Location & Exp</th>
+                                        <th class="py-2.5 px-3">Contact Email</th>
+                                        <th class="py-2.5 px-3">Status</th>
+                                        <th class="py-2.5 px-3">HR Response Snippet</th>
+                                        <th class="py-2.5 px-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_${dateStr.replace(/-/g, '_')}" class="divide-y divide-slate-100 text-slate-700">
+                                </tbody>
+                            </table>
+                        </div>
                     `;
-                    tbody.appendChild(tr);
+
+                    container.appendChild(card);
+
+                    const tbody = document.getElementById(`tbody_${dateStr.replace(/-/g, '_')}`);
+                    jobsForDate.forEach(job => {
+                        const tr = document.createElement("tr");
+                        tr.className = "hover:bg-indigo-50/40 transition border-b border-slate-100 cursor-pointer";
+                        tr.onclick = (e) => {
+                            if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.closest("button") && !e.target.closest("a")) {
+                                displayJobReview(job);
+                            }
+                        };
+
+                        let statusLabel = "Saved Draft";
+                        let statusClass = "bg-amber-100 text-amber-800 font-semibold";
+                        if (job.status === "SENT") {
+                            statusLabel = "Email Sent";
+                            statusClass = "bg-blue-100 text-blue-800 font-semibold";
+                        } else if (job.status === "SCHEDULED") {
+                            let schedTime = "Scheduled";
+                            if (job.scheduled_at) {
+                                try {
+                                    const sd = new Date(job.scheduled_at);
+                                    const dStr = sd.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                                    const tStr = sd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+                                    schedTime = `${dStr}, ${tStr}`;
+                                } catch(e) {
+                                    schedTime = job.scheduled_at.substring(0, 16);
+                                }
+                            }
+                            statusLabel = `⏰ Sched (${schedTime})`;
+                            statusClass = "bg-purple-100 text-purple-800 font-bold";
+                        } else if (job.status === "DM_SENT") {
+                            statusLabel = "LinkedIn DM Sent";
+                            statusClass = "bg-indigo-100 text-indigo-800 font-semibold";
+                        } else if (job.status === "REPLIED") {
+                            statusLabel = "HR Replied";
+                            statusClass = "bg-emerald-100 text-emerald-800 font-bold animate-pulse";
+                        }
+
+                        let eligBadge = "";
+                        if (job.is_flagged) {
+                            eligBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800" title="${(job.flag_reasons || []).join(' | ')}">⚠️ Flagged</span>`;
+                        } else {
+                            eligBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">✅ Eligible</span>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td class="py-3 px-3">
+                                <span class="font-bold text-slate-900 block">${job.company_name || 'N/A'}</span>
+                                <span class="text-slate-500 text-[11px]">${job.role_title || 'N/A'}</span>
+                                <div class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                                    <i class="fa-solid fa-paperclip text-emerald-600"></i>
+                                    <span>Aaryan Gen Ai Resume.pdf</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5">
+                                    ${eligBadge}
+                                    <span class="font-mono font-bold text-indigo-600 text-[11px]">${job.ats_score || 85}% ATS</span>
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">
+                                    Compat: ${job.compatibility_score || 85}%
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="block">${job.location || 'Flexible'}</span>
+                                <span class="text-[10px] text-indigo-600 font-medium">${job.experience || 'Flexible'}</span>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px]">
+                                ${job.contact_email || '<span class="text-slate-400 italic">LinkedIn DM</span>'}
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] ${statusClass}">${statusLabel}</span>
+                            </td>
+                            <td class="py-3 px-3 max-w-xs truncate text-slate-600" title="${job.reply_snippet || ''}">
+                                ${job.reply_snippet || '<span class="text-slate-300">-</span>'}
+                            </td>
+                            <td class="py-3 px-3 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="event.stopPropagation(); displayJobReview(loadedJobs[${job.id}])" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg font-medium text-xs transition flex items-center gap-1">
+                                        <i class="fa-regular fa-folder-open"></i> Review & Send
+                                    </button>
+                                    <button onclick="deleteJob(${job.id}, event)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1.5 rounded-lg font-medium text-xs border border-rose-200 transition" title="Delete application">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
                 });
             } catch (err) {
                 console.error("Failed to load jobs", err);
